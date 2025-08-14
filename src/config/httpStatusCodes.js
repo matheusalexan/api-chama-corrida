@@ -147,13 +147,7 @@ export function getStatusDescription(statusCode, context = '') {
       409: 'Operação não permitida no estado atual da corrida',
       422: 'Corrida não pode ser modificada no estado atual'
     },
-    'avaliacao': {
-      201: 'Avaliação registrada com sucesso',
-      200: 'Dados da avaliação retornados com sucesso',
-      404: 'Avaliação não encontrada',
-      409: 'Avaliação já existe para esta corrida/autor',
-      422: 'Avaliação não pode ser feita (corrida não finalizada)'
-    }
+
   };
 
   const contextDesc = contextDescriptions[context];

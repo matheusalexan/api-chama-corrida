@@ -65,7 +65,7 @@ const router = express.Router();
  *                             CONCLUIDA: { type: 'integer', example: 1100 }
  *                             CANCELADA_PELO_PASSAGEIRO: { type: 'integer', example: 28 }
  *                             CANCELADA_PELO_MOTORISTA: { type: 'integer', example: 25 }
- *                     avaliacoes:
+
  *                       type: 'object'
  *                       properties:
  *                         total: { type: 'integer', example: 890 }
@@ -296,7 +296,7 @@ router.get('/status-sistema', async (req, res) => {
  *         required: false
  *         schema:
  *           type: string
- *           enum: [passageiros, motoristas, pedidos, corridas, avaliacoes, todos]
+ *           enum: [passageiros, motoristas, pedidos, corridas, todos]
  *         description: Módulo específico para busca
  *         example: "passageiros"
  *       - in: query

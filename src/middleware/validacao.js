@@ -123,33 +123,7 @@ export const validarTelefoneE164 = (req, res, next) => {
   next();
 };
 
-/**
- * Middleware para validação de nota de avaliação
- */
-export const validarNotaAvaliacao = (req, res, next) => {
-  const { nota } = req.body;
-  
-  if (nota !== undefined) {
-    if (typeof nota !== 'number' || nota < 1 || nota > 5 || !Number.isInteger(nota)) {
-      return next(Erro.criarErroValidacao('Nota deve ser um número inteiro entre 1 e 5'));
-    }
-  }
 
-  next();
-};
-
-/**
- * Middleware para validação de autor de avaliação
- */
-export const validarAutorAvaliacao = (req, res, next) => {
-  const { autor } = req.body;
-  
-  if (autor && !['PASSAGEIRO', 'MOTORISTA'].includes(autor)) {
-    return next(Erro.criarErroValidacao('Autor deve ser PASSAGEIRO ou MOTORISTA'));
-  }
-
-  next();
-};
 
 /**
  * Middleware para validação de disponibilidade do motorista

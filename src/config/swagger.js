@@ -244,8 +244,7 @@ export const swaggerSchemas = {
           { $ref: '#/components/schemas/Passageiro' },
           { $ref: '#/components/schemas/Motorista' },
           { $ref: '#/components/schemas/PedidoCorrida' },
-          { $ref: '#/components/schemas/Corrida' },
-          { $ref: '#/components/schemas/Avaliacao' }
+          { $ref: '#/components/schemas/Corrida' }
         ]
       },
       sucesso: {
@@ -269,8 +268,7 @@ export const swaggerSchemas = {
             { $ref: '#/components/schemas/Passageiro' },
             { $ref: '#/components/schemas/Motorista' },
             { $ref: '#/components/schemas/PedidoCorrida' },
-            { $ref: '#/components/schemas/Corrida' },
-            { $ref: '#/components/schemas/Avaliacao' }
+            { $ref: '#/components/schemas/Corrida' }
           ]
         }
       },

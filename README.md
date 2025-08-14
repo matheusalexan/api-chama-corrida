@@ -120,16 +120,7 @@ A API estará disponível em `http://localhost:3000`
 | Método | Endpoint | Descrição |
 |--------|----------|------------|
 | `POST` | `/corridas/:corridaId/avaliar` | Avaliar uma corrida |
-| `GET` | `/avaliacoes` | Listar todas as avaliações |
-| `GET` | `/avaliacoes/:id` | Buscar avaliação por ID |
-| `PUT` | `/avaliacoes/:id` | Atualizar avaliação |
-| `DELETE` | `/avaliacoes/:id` | Remover avaliação |
-| `GET` | `/avaliacoes/corrida/:corridaId` | Avaliações de uma corrida |
-| `GET` | `/avaliacoes/autor/:autor` | Avaliações de um autor |
-| `GET` | `/avaliacoes/nota/:nota` | Filtrar por nota |
-| `GET` | `/avaliacoes/corrida/:corridaId/media` | Média de uma corrida |
-| `GET` | `/avaliacoes/buscar` | Busca com filtros |
-| `GET` | `/avaliacoes/estatisticas` | Estatísticas gerais |
+
 
 ### 🔧 Utilitários
 
