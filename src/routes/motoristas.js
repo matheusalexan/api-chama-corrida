@@ -1,6 +1,6 @@
 import express from 'express';
 import { MotoristaController } from '../controllers/MotoristaController.js';
-import { validarUUID, validarPaginacao } from '../middleware/validacao.js';
+import { validarUUID, validarPaginacao, validarCategoria, validarDisponibilidade } from '../middleware/validacao.js';
 
 const router = express.Router();
 
@@ -9,7 +9,7 @@ const router = express.Router();
  * /motoristas:
  *   post:
  *     summary: Criar um novo motorista
- *     description: Cria um novo motorista no sistema
+ *     description: Cria um novo motorista no sistema com nome, telefone único e categoria de veículo
  *     tags: [Motoristas]
  *     requestBody:
  *       required: true
@@ -36,32 +36,31 @@ const router = express.Router();
  *               categoria:
  *                 type: string
  *                 enum: [ECONOMY, COMFORT]
- *                 description: Categoria do motorista
+ *                 description: Categoria do veículo do motorista
  *                 example: "ECONOMY"
  *     responses:
  *       201:
- *         description: Motorista criado com sucesso
+ *         description: ✅ Motorista criado com sucesso! O sistema registrou um novo motorista com os dados fornecidos.
  *         content:
  *           application/json:
  *             schema:
- *               type: object
- *               properties:
- *                 dados:
- *                   $ref: '#/components/schemas/Motorista'
- *                 sucesso:
- *                   type: boolean
- *                   example: true
- *                 timestamp:
- *                   type: string
- *                   format: date-time
+ *               $ref: '#/components/schemas/RespostaCriacao'
  *       400:
- *         $ref: '#/components/responses/ErroPadrao'
+ *         description: ❌ Dados inválidos! Verifique se o nome tem entre 3-80 caracteres, telefone está no formato correto e categoria é ECONOMY ou COMFORT.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/responses/ErroValidacao'
  *       409:
- *         $ref: '#/components/responses/ErroPadrao'
+ *         description: ❌ Conflito! Este telefone já está sendo usado por outro motorista. Use um telefone diferente.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/responses/ErroConflito'
  * 
  *   get:
  *     summary: Listar todos os motoristas
- *     description: Retorna uma lista paginada de todos os motoristas
+ *     description: Retorna uma lista paginada de todos os motoristas cadastrados no sistema
  *     tags: [Motoristas]
  *     parameters:
  *       - in: query
@@ -70,7 +69,7 @@ const router = express.Router();
  *           type: integer
  *           minimum: 1
  *           default: 1
- *         description: Número da página
+ *         description: Número da página (começa em 1)
  *       - in: query
  *         name: limite
  *         schema:
@@ -78,51 +77,25 @@ const router = express.Router();
  *           minimum: 1
  *           maximum: 100
  *           default: 20
- *         description: Número de itens por página
+ *         description: Quantidade de motoristas por página (máximo 100)
  *     responses:
  *       200:
- *         description: Lista de motoristas retornada com sucesso
+ *         description: ✅ Lista de motoristas retornada com sucesso! A resposta inclui os dados paginados e metadados de navegação.
  *         content:
  *           application/json:
  *             schema:
- *               type: object
- *               properties:
- *                 dados:
- *                   type: array
- *                   items:
- *                     $ref: '#/components/schemas/Motorista'
- *                 meta:
- *                   type: object
- *                   properties:
- *                     pagina:
- *                       type: integer
- *                       example: 1
- *                     limite:
- *                       type: integer
- *                       example: 20
- *                     total:
- *                       type: integer
- *                       example: 50
- *                     totalPaginas:
- *                       type: integer
- *                       example: 3
- *                     temProxima:
- *                       type: boolean
- *                       example: true
- *                     temAnterior:
- *                       type: boolean
- *                       example: false
- *                 sucesso:
- *                   type: boolean
- *                   example: true
- *                 timestamp:
- *                   type: string
- *                   format: date-time
+ *               $ref: '#/components/schemas/RespostaLista'
+ *       400:
+ *         description: ❌ Parâmetros de paginação inválidos! Verifique se a página é ≥ 1 e o limite está entre 1-100.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/responses/ErroValidacao'
  * 
  * /motoristas/{id}:
  *   get:
  *     summary: Buscar motorista por ID
- *     description: Retorna os dados de um motorista específico
+ *     description: Retorna os dados completos de um motorista específico usando seu ID único
  *     tags: [Motoristas]
  *     parameters:
  *       - in: path
@@ -131,30 +104,31 @@ const router = express.Router();
  *         schema:
  *           type: string
  *           format: uuid
- *         description: ID único do motorista
- *         example: "123e4567-e89b-12d3-a456-426614174000"
+ *         description: ID único do motorista (formato UUID)
+ *         example: "123e4567-e89b-12d3-a456-426614174001"
  *     responses:
  *       200:
- *         description: Motorista encontrado com sucesso
+ *         description: ✅ Motorista encontrado com sucesso! Retorna todos os dados do motorista solicitado.
  *         content:
  *           application/json:
  *             schema:
- *               type: object
- *               properties:
- *                 dados:
- *                   $ref: '#/components/schemas/Motorista'
- *                 sucesso:
- *                   type: boolean
- *                   example: true
- *                 timestamp:
- *                   type: string
- *                   format: date-time
+ *               $ref: '#/components/schemas/RespostaSucesso'
+ *       400:
+ *         description: ❌ ID inválido! O ID fornecido não está no formato UUID correto.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/responses/ErroValidacao'
  *       404:
- *         $ref: '#/components/responses/ErroPadrao'
+ *         description: ❌ Motorista não encontrado! Não existe motorista com este ID no sistema.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/responses/ErroNaoEncontrado'
  * 
  *   put:
- *     summary: Atualizar motorista
- *     description: Atualiza os dados de um motorista existente
+ *     summary: Atualizar dados do motorista
+ *     description: Atualiza os dados de um motorista existente (nome, telefone e/ou categoria)
  *     tags: [Motoristas]
  *     parameters:
  *       - in: path
@@ -163,8 +137,8 @@ const router = express.Router();
  *         schema:
  *           type: string
  *           format: uuid
- *         description: ID único do motorista
- *         example: "123e4567-e89b-12d3-a456-426614174000"
+ *         description: ID único do motorista a ser atualizado
+ *         example: "123e4567-e89b-12d3-a456-426614174001"
  *     requestBody:
  *       required: true
  *       content:
@@ -176,44 +150,47 @@ const router = express.Router();
  *                 type: string
  *                 minLength: 3
  *                 maxLength: 80
- *                 description: Novo nome do motorista
- *                 example: "Carlos Oliveira"
+ *                 description: Novo nome do motorista (opcional)
+ *                 example: "Carlos Oliveira Atualizado"
  *               telefoneE164:
  *                 type: string
  *                 pattern: '^\+[0-9]{10,15}$'
- *                 description: Novo número de telefone
+ *                 description: Novo telefone do motorista (opcional)
  *                 example: "+5511888888888"
  *               categoria:
  *                 type: string
  *                 enum: [ECONOMY, COMFORT]
- *                 description: Nova categoria
+ *                 description: Nova categoria do veículo (opcional)
  *                 example: "COMFORT"
  *     responses:
  *       200:
- *         description: Motorista atualizado com sucesso
+ *         description: ✅ Motorista atualizado com sucesso! Os dados foram modificados conforme solicitado.
  *         content:
  *           application/json:
  *             schema:
- *               type: object
- *               properties:
- *                 dados:
- *                   $ref: '#/components/schemas/Motorista'
- *                 sucesso:
- *                   type: boolean
- *                   example: true
- *                 timestamp:
- *                   type: string
- *                   format: date-time
+ *               $ref: '#/components/schemas/RespostaSucesso'
  *       400:
- *         $ref: '#/components/responses/ErroPadrao'
+ *         description: ❌ Dados inválidos! Verifique se o nome tem entre 3-80 caracteres, telefone está no formato correto e categoria é ECONOMY ou COMFORT.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/responses/ErroValidacao'
  *       404:
- *         $ref: '#/components/responses/ErroPadrao'
+ *         description: ❌ Motorista não encontrado! Não existe motorista com este ID para atualizar.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/responses/ErroNaoEncontrado'
  *       409:
- *         $ref: '#/components/responses/ErroPadrao'
+ *         description: ❌ Conflito! O novo telefone já está sendo usado por outro motorista.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/responses/ErroConflito'
  * 
  *   delete:
- *     summary: Remover motorista
- *     description: Remove um motorista do sistema
+ *     summary: Remover motorista do sistema
+ *     description: Remove permanentemente um motorista e todos os seus dados do sistema
  *     tags: [Motoristas]
  *     parameters:
  *       - in: path
@@ -222,39 +199,32 @@ const router = express.Router();
  *         schema:
  *           type: string
  *           format: uuid
- *         description: ID único do motorista
- *         example: "123e4567-e89b-12d3-a456-426614174000"
+ *         description: ID único do motorista a ser removido
+ *         example: "123e4567-e89b-12d3-a456-426614174001"
  *     responses:
- *       200:
- *         description: Motorista removido com sucesso
+ *       204:
+ *         description: ✅ Motorista removido com sucesso! O motorista foi excluído permanentemente do sistema.
  *         content:
  *           application/json:
  *             schema:
- *               type: object
- *               properties:
- *                 dados:
- *                   type: object
- *                   properties:
- *                     mensagem:
- *                       type: string
- *                       example: "Motorista removido com sucesso"
- *                     id:
- *                       type: string
- *                       format: uuid
- *                       example: "123e4567-e89b-12d3-a456-426614174000"
- *                 sucesso:
- *                   type: boolean
- *                   example: true
- *                 timestamp:
- *                   type: string
- *                   format: date-time
+ *               $ref: '#/components/schemas/RespostaExclusao'
+ *       400:
+ *         description: ❌ ID inválido! O ID fornecido não está no formato UUID correto.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/responses/ErroValidacao'
  *       404:
- *         $ref: '#/components/responses/ErroPadrao'
+ *         description: ❌ Motorista não encontrado! Não existe motorista com este ID para remover.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/responses/ErroNaoEncontrado'
  * 
  * /motoristas/{id}/disponibilidade:
  *   patch:
  *     summary: Alterar disponibilidade do motorista
- *     description: Altera o status de disponibilidade de um motorista
+ *     description: Altera se o motorista está disponível ou não para receber corridas
  *     tags: [Motoristas]
  *     parameters:
  *       - in: path
@@ -264,7 +234,7 @@ const router = express.Router();
  *           type: string
  *           format: uuid
  *         description: ID único do motorista
- *         example: "123e4567-e89b-12d3-a456-426614174000"
+ *         example: "123e4567-e89b-12d3-a456-426614174001"
  *     requestBody:
  *       required: true
  *       content:
@@ -276,33 +246,32 @@ const router = express.Router();
  *             properties:
  *               disponivel:
  *                 type: boolean
- *                 description: Novo status de disponibilidade
- *                 example: false
+ *                 description: Se o motorista está disponível para corridas
+ *                 example: true
  *     responses:
  *       200:
- *         description: Disponibilidade alterada com sucesso
+ *         description: ✅ Disponibilidade alterada com sucesso! O motorista agora está marcado como disponível/indisponível conforme solicitado.
  *         content:
  *           application/json:
  *             schema:
- *               type: object
- *               properties:
- *                 dados:
- *                   $ref: '#/components/schemas/Motorista'
- *                 sucesso:
- *                   type: boolean
- *                   example: true
- *                 timestamp:
- *                   type: string
- *                   format: date-time
+ *               $ref: '#/components/schemas/RespostaSucesso'
  *       400:
- *         $ref: '#/components/responses/ErroPadrao'
+ *         description: ❌ Dados inválidos! O campo disponivel deve ser true ou false.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/responses/ErroValidacao'
  *       404:
- *         $ref: '#/components/responses/ErroPadrao'
+ *         description: ❌ Motorista não encontrado! Não existe motorista com este ID para alterar disponibilidade.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/responses/ErroNaoEncontrado'
  * 
  * /motoristas/telefone/{telefone}:
  *   get:
  *     summary: Buscar motorista por telefone
- *     description: Retorna um motorista baseado no número de telefone
+ *     description: Busca um motorista específico usando seu número de telefone
  *     tags: [Motoristas]
  *     parameters:
  *       - in: path
@@ -315,43 +284,37 @@ const router = express.Router();
  *         example: "+5511888888888"
  *     responses:
  *       200:
- *         description: Motorista encontrado com sucesso
+ *         description: ✅ Motorista encontrado com sucesso! Retorna os dados do motorista com este telefone.
  *         content:
  *           application/json:
  *             schema:
- *               type: object
- *               properties:
- *                 dados:
- *                   $ref: '#/components/schemas/Motorista'
- *                 sucesso:
- *                   type: boolean
- *                   example: true
- *                 timestamp:
- *                   type: string
- *                   format: date-time
+ *               $ref: '#/components/schemas/RespostaSucesso'
+ *       400:
+ *         description: ❌ Telefone inválido! O telefone deve estar no formato +5511888888888.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/responses/ErroValidacao'
  *       404:
- *         $ref: '#/components/responses/ErroPadrao'
+ *         description: ❌ Motorista não encontrado! Não existe motorista com este telefone no sistema.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/responses/ErroNaoEncontrado'
  * 
  * /motoristas/disponiveis:
  *   get:
- *     summary: Buscar motoristas disponíveis
- *     description: Retorna uma lista de motoristas disponíveis para corridas
+ *     summary: Listar motoristas disponíveis
+ *     description: Retorna apenas os motoristas que estão disponíveis para receber corridas
  *     tags: [Motoristas]
  *     parameters:
- *       - in: query
- *         name: categoria
- *         schema:
- *           type: string
- *           enum: [ECONOMY, COMFORT]
- *         description: Filtrar por categoria específica
- *         example: "ECONOMY"
  *       - in: query
  *         name: pagina
  *         schema:
  *           type: integer
  *           minimum: 1
  *           default: 1
- *         description: Número da página
+ *         description: Número da página (começa em 1)
  *       - in: query
  *         name: limite
  *         schema:
@@ -359,51 +322,25 @@ const router = express.Router();
  *           minimum: 1
  *           maximum: 100
  *           default: 20
- *         description: Número de itens por página
+ *         description: Quantidade de motoristas por página (máximo 100)
  *     responses:
  *       200:
- *         description: Lista de motoristas disponíveis retornada com sucesso
+ *         description: ✅ Lista de motoristas disponíveis retornada com sucesso! Apenas motoristas que podem receber corridas.
  *         content:
  *           application/json:
  *             schema:
- *               type: object
- *               properties:
- *                 dados:
- *                   type: array
- *                   items:
- *                     $ref: '#/components/schemas/Motorista'
- *                 meta:
- *                   type: object
- *                   properties:
- *                     pagina:
- *                       type: integer
- *                       example: 1
- *                     limite:
- *                       type: integer
- *                       example: 20
- *                     total:
- *                       type: integer
- *                       example: 25
- *                     totalPaginas:
- *                       type: integer
- *                       example: 2
- *                     temProxima:
- *                       type: boolean
- *                       example: true
- *                     temAnterior:
- *                       type: boolean
- *                       example: false
- *                 sucesso:
- *                   type: boolean
- *                   example: true
- *                 timestamp:
- *                   type: string
- *                   format: date-time
+ *               $ref: '#/components/schemas/RespostaLista'
+ *       400:
+ *         description: ❌ Parâmetros de paginação inválidos! Verifique se a página é ≥ 1 e o limite está entre 1-100.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/responses/ErroValidacao'
  * 
  * /motoristas/categoria/{categoria}:
  *   get:
- *     summary: Buscar motoristas por categoria
- *     description: Retorna uma lista de motoristas de uma categoria específica
+ *     summary: Filtrar motoristas por categoria
+ *     description: Retorna motoristas de uma categoria específica (ECONOMY ou COMFORT)
  *     tags: [Motoristas]
  *     parameters:
  *       - in: path
@@ -412,7 +349,7 @@ const router = express.Router();
  *         schema:
  *           type: string
  *           enum: [ECONOMY, COMFORT]
- *         description: Categoria dos motoristas
+ *         description: Categoria de veículo para filtrar
  *         example: "ECONOMY"
  *       - in: query
  *         name: pagina
@@ -420,7 +357,7 @@ const router = express.Router();
  *           type: integer
  *           minimum: 1
  *           default: 1
- *         description: Número da página
+ *         description: Número da página (começa em 1)
  *       - in: query
  *         name: limite
  *         schema:
@@ -428,53 +365,25 @@ const router = express.Router();
  *           minimum: 1
  *           maximum: 100
  *           default: 20
- *         description: Número de itens por página
+ *         description: Quantidade de motoristas por página (máximo 100)
  *     responses:
  *       200:
- *         description: Lista de motoristas por categoria retornada com sucesso
+ *         description: ✅ Motoristas da categoria solicitada retornados com sucesso! Filtrados por ECONOMY ou COMFORT.
  *         content:
  *           application/json:
  *             schema:
- *               type: object
- *               properties:
- *                 dados:
- *                   type: array
- *                   items:
- *                     $ref: '#/components/schemas/Motorista'
- *                 meta:
- *                   type: object
- *                   properties:
- *                     pagina:
- *                       type: integer
- *                       example: 1
- *                     limite:
- *                       type: integer
- *                       example: 20
- *                     total:
- *                       type: integer
- *                       example: 30
- *                     totalPaginas:
- *                       type: integer
- *                       example: 2
- *                     temProxima:
- *                       type: boolean
- *                       example: true
- *                     temAnterior:
- *                       type: boolean
- *                       example: false
- *                 sucesso:
- *                   type: boolean
- *                   example: true
- *                 timestamp:
- *                   type: string
- *                   format: date-time
+ *               $ref: '#/components/schemas/RespostaLista'
  *       400:
- *         $ref: '#/components/responses/ErroPadrao'
+ *         description: ❌ Categoria inválida! Use apenas ECONOMY ou COMFORT.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/responses/ErroValidacao'
  * 
  * /motoristas/buscar/{nome}:
  *   get:
  *     summary: Buscar motoristas por nome
- *     description: Busca motoristas cujo nome contenha o termo fornecido
+ *     description: Busca motoristas cujo nome contenha o termo especificado (busca parcial)
  *     tags: [Motoristas]
  *     parameters:
  *       - in: path
@@ -483,7 +392,7 @@ const router = express.Router();
  *         schema:
  *           type: string
  *           minLength: 2
- *         description: Nome ou parte do nome para busca
+ *         description: Termo para busca no nome (mínimo 2 caracteres)
  *         example: "Carlos"
  *       - in: query
  *         name: pagina
@@ -491,7 +400,7 @@ const router = express.Router();
  *           type: integer
  *           minimum: 1
  *           default: 1
- *         description: Número da página
+ *         description: Número da página (começa em 1)
  *       - in: query
  *         name: limite
  *         schema:
@@ -499,48 +408,20 @@ const router = express.Router();
  *           minimum: 1
  *           maximum: 100
  *           default: 20
- *         description: Número de itens por página
+ *         description: Quantidade de resultados por página (máximo 100)
  *     responses:
  *       200:
- *         description: Busca realizada com sucesso
+ *         description: ✅ Busca realizada com sucesso! Retorna motoristas cujo nome contém o termo buscado.
  *         content:
  *           application/json:
  *             schema:
- *               type: object
- *               properties:
- *                 dados:
- *                   type: array
- *                   items:
- *                     $ref: '#/components/schemas/Motorista'
- *                 meta:
- *                   type: object
- *                   properties:
- *                     pagina:
- *                       type: integer
- *                       example: 1
- *                     limite:
- *                       type: integer
- *                       example: 20
- *                     total:
- *                       type: integer
- *                       example: 3
- *                     totalPaginas:
- *                       type: integer
- *                       example: 1
- *                     temProxima:
- *                       type: boolean
- *                       example: false
- *                     temAnterior:
- *                       type: boolean
- *                       example: false
- *                 sucesso:
- *                   type: boolean
- *                   example: true
- *                 timestamp:
- *                   type: string
- *                   format: date-time
+ *               $ref: '#/components/schemas/RespostaLista'
  *       400:
- *         $ref: '#/components/responses/ErroPadrao'
+ *         description: ❌ Termo de busca inválido! O termo deve ter pelo menos 2 caracteres.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/responses/ErroValidacao'
  */
 
 // Aplicar middleware de paginação para rotas que listam dados
@@ -555,13 +436,11 @@ router.get('/:id', validarUUID('id'), MotoristaController.buscarPorId);
 router.put('/:id', validarUUID('id'), MotoristaController.atualizar);
 router.delete('/:id', validarUUID('id'), MotoristaController.remover);
 
-// Rota de disponibilidade
-router.patch('/:id/disponibilidade', validarUUID('id'), MotoristaController.alterarDisponibilidade);
-
 // Rotas especiais
+router.patch('/:id/disponibilidade', validarUUID('id'), validarDisponibilidade, MotoristaController.alterarDisponibilidade);
 router.get('/telefone/:telefone', MotoristaController.buscarPorTelefone);
-router.get('/disponiveis', MotoristaController.buscarDisponiveis);
-router.get('/categoria/:categoria', MotoristaController.buscarPorCategoria);
+router.get('/disponiveis', MotoristaController.listarDisponiveis);
+router.get('/categoria/:categoria', validarCategoria, MotoristaController.listarPorCategoria);
 router.get('/buscar/:nome', MotoristaController.buscarPorNome);
 
 export default router; 

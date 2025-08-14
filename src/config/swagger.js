@@ -213,49 +213,7 @@ export const swaggerSchemas = {
       }
     }
   },
-  Avaliacao: {
-    type: 'object',
-    required: ['corridaId', 'autor', 'nota'],
-    properties: {
-      id: {
-        type: 'string',
-        format: 'uuid',
-        description: 'ID único da avaliação',
-        example: '123e4567-e89b-12d3-a456-426614174004'
-      },
-      corridaId: {
-        type: 'string',
-        format: 'uuid',
-        description: 'ID da corrida avaliada',
-        example: '123e4567-e89b-12d3-a456-426614174003'
-      },
-      autor: {
-        type: 'string',
-        enum: ['PASSAGEIRO', 'MOTORISTA'],
-        description: 'Quem fez a avaliação',
-        example: 'PASSAGEIRO'
-      },
-      nota: {
-        type: 'integer',
-        minimum: 1,
-        maximum: 5,
-        description: 'Nota de 1 a 5 estrelas',
-        example: 5
-      },
-      comentario: {
-        type: 'string',
-        maxLength: 280,
-        description: 'Comentário opcional sobre a corrida',
-        example: 'Excelente serviço, motorista muito atencioso!'
-      },
-      criadoEm: {
-        type: 'string',
-        format: 'date-time',
-        description: 'Data e hora de criação',
-        example: '2024-01-15T11:30:00.000Z'
-      }
-    }
-  },
+
   Erro: {
     type: 'object',
     required: ['codigo', 'mensagem'],
@@ -678,6 +636,5 @@ export const swaggerTags = [
   { name: 'Motoristas', description: 'Operações relacionadas aos motoristas' },
   { name: 'Pedidos de Corrida', description: 'Gerenciamento de pedidos de corrida' },
   { name: 'Corridas', description: 'Gerenciamento de corridas em andamento' },
-  { name: 'Avaliações', description: 'Sistema de avaliações de corridas' },
   { name: 'Utilitários', description: 'Endpoints utilitários da API' }
 ]; 

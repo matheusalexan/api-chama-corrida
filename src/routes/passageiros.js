@@ -9,7 +9,7 @@ const router = express.Router();
  * /passageiros:
  *   post:
  *     summary: Criar um novo passageiro
- *     description: Cria um novo passageiro no sistema
+ *     description: Cria um novo passageiro no sistema com nome e telefone único
  *     tags: [Passageiros]
  *     requestBody:
  *       required: true
@@ -34,15 +34,27 @@ const router = express.Router();
  *                 example: "+5511999999999"
  *     responses:
  *       201:
- *         $ref: '#/components/responses/RespostaCriacao'
+ *         description: ✅ Passageiro criado com sucesso! O sistema registrou um novo passageiro com o nome e telefone fornecidos.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/RespostaCriacao'
  *       400:
- *         $ref: '#/components/responses/ErroValidacao'
+ *         description: ❌ Dados inválidos! Verifique se o nome tem entre 3-80 caracteres e o telefone está no formato +5511999999999
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/responses/ErroValidacao'
  *       409:
- *         $ref: '#/components/responses/ErroConflito'
+ *         description: ❌ Conflito! Este telefone já está sendo usado por outro passageiro. Use um telefone diferente.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/responses/ErroConflito'
  * 
  *   get:
  *     summary: Listar todos os passageiros
- *     description: Retorna uma lista paginada de todos os passageiros
+ *     description: Retorna uma lista paginada de todos os passageiros cadastrados no sistema
  *     tags: [Passageiros]
  *     parameters:
  *       - in: query
@@ -51,7 +63,7 @@ const router = express.Router();
  *           type: integer
  *           minimum: 1
  *           default: 1
- *         description: Número da página
+ *         description: Número da página (começa em 1)
  *       - in: query
  *         name: limite
  *         schema:
@@ -59,17 +71,25 @@ const router = express.Router();
  *           minimum: 1
  *           maximum: 100
  *           default: 20
- *         description: Número de itens por página
+ *         description: Quantidade de passageiros por página (máximo 100)
  *     responses:
  *       200:
- *         $ref: '#/components/responses/RespostaLista'
+ *         description: ✅ Lista de passageiros retornada com sucesso! A resposta inclui os dados paginados e metadados de navegação.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/RespostaLista'
  *       400:
- *         $ref: '#/components/responses/ErroValidacao'
+ *         description: ❌ Parâmetros de paginação inválidos! Verifique se a página é ≥ 1 e o limite está entre 1-100.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/responses/ErroValidacao'
  * 
  * /passageiros/{id}:
  *   get:
  *     summary: Buscar passageiro por ID
- *     description: Retorna os dados de um passageiro específico
+ *     description: Retorna os dados completos de um passageiro específico usando seu ID único
  *     tags: [Passageiros]
  *     parameters:
  *       - in: path
@@ -78,19 +98,31 @@ const router = express.Router();
  *         schema:
  *           type: string
  *           format: uuid
- *         description: ID único do passageiro
+ *         description: ID único do passageiro (formato UUID)
  *         example: "123e4567-e89b-12d3-a456-426614174000"
  *     responses:
  *       200:
- *         $ref: '#/components/responses/RespostaSucesso'
+ *         description: ✅ Passageiro encontrado com sucesso! Retorna todos os dados do passageiro solicitado.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/RespostaSucesso'
  *       400:
- *         $ref: '#/components/responses/ErroValidacao'
+ *         description: ❌ ID inválido! O ID fornecido não está no formato UUID correto.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/responses/ErroValidacao'
  *       404:
- *         $ref: '#/components/responses/ErroNaoEncontrado'
+ *         description: ❌ Passageiro não encontrado! Não existe passageiro com este ID no sistema.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/responses/ErroNaoEncontrado'
  * 
  *   put:
- *     summary: Atualizar passageiro
- *     description: Atualiza os dados de um passageiro existente
+ *     summary: Atualizar dados do passageiro
+ *     description: Atualiza os dados de um passageiro existente (nome e/ou telefone)
  *     tags: [Passageiros]
  *     parameters:
  *       - in: path
@@ -99,7 +131,7 @@ const router = express.Router();
  *         schema:
  *           type: string
  *           format: uuid
- *         description: ID único do passageiro
+ *         description: ID único do passageiro a ser atualizado
  *         example: "123e4567-e89b-12d3-a456-426614174000"
  *     requestBody:
  *       required: true
@@ -112,26 +144,42 @@ const router = express.Router();
  *                 type: string
  *                 minLength: 3
  *                 maxLength: 80
- *                 description: Nome completo do passageiro
+ *                 description: Novo nome do passageiro (opcional)
  *                 example: "João Silva Santos Atualizado"
  *               telefoneE164:
  *                 type: string
  *                 pattern: '^\+[0-9]{10,15}$'
- *                 description: Número de telefone no formato E.164
+ *                 description: Novo telefone do passageiro (opcional)
  *                 example: "+5511999999999"
  *     responses:
  *       200:
- *         $ref: '#/components/responses/RespostaSucesso'
+ *         description: ✅ Passageiro atualizado com sucesso! Os dados foram modificados conforme solicitado.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/RespostaSucesso'
  *       400:
- *         $ref: '#/components/responses/ErroValidacao'
+ *         description: ❌ Dados inválidos! Verifique se o nome tem entre 3-80 caracteres e o telefone está no formato correto.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/responses/ErroValidacao'
  *       404:
- *         $ref: '#/components/responses/ErroNaoEncontrado'
+ *         description: ❌ Passageiro não encontrado! Não existe passageiro com este ID para atualizar.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/responses/ErroNaoEncontrado'
  *       409:
- *         $ref: '#/components/responses/ErroConflito'
+ *         description: ❌ Conflito! O novo telefone já está sendo usado por outro passageiro.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/responses/ErroConflito'
  * 
  *   delete:
- *     summary: Remover passageiro
- *     description: Remove um passageiro do sistema
+ *     summary: Remover passageiro do sistema
+ *     description: Remove permanentemente um passageiro e todos os seus dados do sistema
  *     tags: [Passageiros]
  *     parameters:
  *       - in: path
@@ -140,20 +188,32 @@ const router = express.Router();
  *         schema:
  *           type: string
  *           format: uuid
- *         description: ID único do passageiro
+ *         description: ID único do passageiro a ser removido
  *         example: "123e4567-e89b-12d3-a456-426614174000"
  *     responses:
  *       204:
- *         $ref: '#/components/responses/RespostaExclusao'
+ *         description: ✅ Passageiro removido com sucesso! O passageiro foi excluído permanentemente do sistema.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/RespostaExclusao'
  *       400:
- *         $ref: '#/components/responses/ErroValidacao'
+ *         description: ❌ ID inválido! O ID fornecido não está no formato UUID correto.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/responses/ErroValidacao'
  *       404:
- *         $ref: '#/components/responses/ErroNaoEncontrado'
+ *         description: ❌ Passageiro não encontrado! Não existe passageiro com este ID para remover.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/responses/ErroNaoEncontrado'
  * 
  * /passageiros/telefone/{telefone}:
  *   get:
  *     summary: Buscar passageiro por telefone
- *     description: Busca um passageiro pelo número de telefone
+ *     description: Busca um passageiro específico usando seu número de telefone
  *     tags: [Passageiros]
  *     parameters:
  *       - in: path
@@ -166,16 +226,28 @@ const router = express.Router();
  *         example: "+5511999999999"
  *     responses:
  *       200:
- *         $ref: '#/components/responses/RespostaSucesso'
+ *         description: ✅ Passageiro encontrado com sucesso! Retorna os dados do passageiro com este telefone.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/RespostaSucesso'
  *       400:
- *         $ref: '#/components/responses/ErroValidacao'
+ *         description: ❌ Telefone inválido! O telefone deve estar no formato +5511999999999.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/responses/ErroValidacao'
  *       404:
- *         $ref: '#/components/responses/ErroNaoEncontrado'
+ *         description: ❌ Passageiro não encontrado! Não existe passageiro com este telefone no sistema.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/responses/ErroNaoEncontrado'
  * 
  * /passageiros/buscar/{nome}:
  *   get:
  *     summary: Buscar passageiros por nome
- *     description: Busca passageiros cujo nome contenha o termo especificado
+ *     description: Busca passageiros cujo nome contenha o termo especificado (busca parcial)
  *     tags: [Passageiros]
  *     parameters:
  *       - in: path
@@ -184,7 +256,7 @@ const router = express.Router();
  *         schema:
  *           type: string
  *           minLength: 2
- *         description: Termo para busca no nome
+ *         description: Termo para busca no nome (mínimo 2 caracteres)
  *         example: "João"
  *       - in: query
  *         name: pagina
@@ -192,7 +264,7 @@ const router = express.Router();
  *           type: integer
  *           minimum: 1
  *           default: 1
- *         description: Número da página
+ *         description: Número da página (começa em 1)
  *       - in: query
  *         name: limite
  *         schema:
@@ -200,12 +272,20 @@ const router = express.Router();
  *           minimum: 1
  *           maximum: 100
  *           default: 20
- *         description: Número de itens por página
+ *         description: Quantidade de resultados por página (máximo 100)
  *     responses:
  *       200:
- *         $ref: '#/components/responses/RespostaLista'
+ *         description: ✅ Busca realizada com sucesso! Retorna passageiros cujo nome contém o termo buscado.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/RespostaLista'
  *       400:
- *         $ref: '#/components/responses/ErroValidacao'
+ *         description: ❌ Termo de busca inválido! O termo deve ter pelo menos 2 caracteres.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/responses/ErroValidacao'
  */
 
 // Aplicar middleware de paginação para rotas que listam dados

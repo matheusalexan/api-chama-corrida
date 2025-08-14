@@ -4,7 +4,7 @@ import { PassageiroService } from '../models/Passageiro.js';
 import { MotoristaService } from '../models/Motorista.js';
 import { PedidoCorridaService } from '../models/PedidoCorrida.js';
 import { CorridaService } from '../models/Corrida.js';
-import { AvaliacaoService } from '../models/Avaliacao.js';
+
 import { criarRespostaSucesso, criarRespostaLista, aplicarPaginacao } from '../utils/respostas.js';
 
 const router = express.Router();
@@ -117,20 +117,7 @@ router.get('/estatisticas', async (req, res) => {
       CANCELADA_PELO_MOTORISTA: corridas.filter(c => c.status === 'CANCELADA_PELO_MOTORISTA').length
     };
 
-    // Coletar estatísticas de avaliações
-    const avaliacoes = AvaliacaoService.listarTodas();
-    const totalAvaliacoes = avaliacoes.length;
-    const mediaGeral = totalAvaliacoes > 0 
-      ? avaliacoes.reduce((sum, a) => sum + a.nota, 0) / totalAvaliacoes 
-      : 0;
-    
-    const avaliacoesPorNota = {
-      '1': avaliacoes.filter(a => a.nota === 1).length,
-      '2': avaliacoes.filter(a => a.nota === 2).length,
-      '3': avaliacoes.filter(a => a.nota === 3).length,
-      '4': avaliacoes.filter(a => a.nota === 4).length,
-      '5': avaliacoes.filter(a => a.nota === 5).length
-    };
+
 
     const estatisticas = {
       passageiros: {
@@ -150,11 +137,7 @@ router.get('/estatisticas', async (req, res) => {
         total: totalCorridas,
         porStatus: corridasPorStatus
       },
-      avaliacoes: {
-        total: totalAvaliacoes,
-        mediaGeral: Math.round(mediaGeral * 100) / 100, // Arredondar para 2 casas decimais
-        porNota: avaliacoesPorNota
-      }
+
     };
 
     res.json(criarRespostaSucesso(estatisticas));
@@ -405,13 +388,7 @@ router.get('/buscar', validarPaginacao, async (req, res) => {
       resultados.push(...corridas);
     }
 
-    // Buscar em avaliações
-    if (modulo === 'todos' || modulo === 'avaliacoes') {
-      const avaliacoes = AvaliacaoService.listarTodas()
-        .filter(a => a.comentario && a.comentario.toLowerCase().includes(termoBusca))
-        .map(a => ({ ...a, tipo: 'avaliacao' }));
-      resultados.push(...avaliacoes);
-    }
+
 
     // Aplicar paginação
     const { dados, meta } = aplicarPaginacao(resultados, pagina, limite);

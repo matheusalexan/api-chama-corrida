@@ -10,7 +10,6 @@ import passageirosRoutes from './routes/passageiros.js';
 import motoristasRoutes from './routes/motoristas.js';
 import pedidosCorridaRoutes from './routes/pedidos-corrida.js';
 import corridasRoutes from './routes/corridas.js';
-import avaliacoesRoutes from './routes/avaliacoes.js';
 import utilitariosRoutes from './routes/utilitarios.js';
 
 // Importar middleware de tratamento de erros
@@ -59,14 +58,13 @@ const swaggerOptions = {
         description: 'Servidor de Produção'
       }
     ],
-    tags: [
-      { name: 'Passageiros', description: 'Operações relacionadas aos passageiros' },
-      { name: 'Motoristas', description: 'Operações relacionadas aos motoristas' },
-      { name: 'Pedidos de Corrida', description: 'Gerenciamento de pedidos de corrida' },
-      { name: 'Corridas', description: 'Gerenciamento de corridas em andamento' },
-      { name: 'Avaliações', description: 'Sistema de avaliações de corridas' },
-      { name: 'Utilitários', description: 'Endpoints utilitários da API' }
-    ],
+              tags: [
+            { name: 'Passageiros', description: 'Operações relacionadas aos passageiros' },
+            { name: 'Motoristas', description: 'Operações relacionadas aos motoristas' },
+            { name: 'Pedidos de Corrida', description: 'Gerenciamento de pedidos de corrida' },
+            { name: 'Corridas', description: 'Gerenciamento de corridas em andamento' },
+            { name: 'Utilitários', description: 'Endpoints utilitários da API' }
+          ],
     components: {
       schemas: {
         Passageiro: {
@@ -279,49 +277,7 @@ const swaggerOptions = {
             }
           }
         },
-        Avaliacao: {
-          type: 'object',
-          required: ['corridaId', 'autor', 'nota'],
-          properties: {
-            id: {
-              type: 'string',
-              format: 'uuid',
-              description: 'ID único da avaliação',
-              example: '123e4567-e89b-12d3-a456-426614174004'
-            },
-            corridaId: {
-              type: 'string',
-              format: 'uuid',
-              description: 'ID da corrida avaliada',
-              example: '123e4567-e89b-12d3-a456-426614174003'
-            },
-            autor: {
-              type: 'string',
-              enum: ['PASSAGEIRO', 'MOTORISTA'],
-              description: 'Quem fez a avaliação',
-              example: 'PASSAGEIRO'
-            },
-            nota: {
-              type: 'integer',
-              minimum: 1,
-              maximum: 5,
-              description: 'Nota de 1 a 5 estrelas',
-              example: 5
-            },
-            comentario: {
-              type: 'string',
-              maxLength: 280,
-              description: 'Comentário opcional sobre a corrida',
-              example: 'Excelente serviço, motorista muito atencioso!'
-            },
-            criadoEm: {
-              type: 'string',
-              format: 'date-time',
-              description: 'Data e hora de criação',
-              example: '2024-01-15T11:30:00.000Z'
-            }
-          }
-        },
+
         Erro: {
           type: 'object',
           required: ['codigo', 'mensagem'],
@@ -391,7 +347,6 @@ app.use('/api/v1/passageiros', passageirosRoutes);
 app.use('/api/v1/motoristas', motoristasRoutes);
 app.use('/api/v1/pedidos-corrida', pedidosCorridaRoutes);
 app.use('/api/v1/corridas', corridasRoutes);
-app.use('/api/v1/avaliacoes', avaliacoesRoutes);
 app.use('/api/v1/utilitarios', utilitariosRoutes);
 
 // 404 handler
