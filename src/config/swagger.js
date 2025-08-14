@@ -351,18 +351,19 @@ export const swaggerSchemas = {
 };
 
 export const swaggerResponses = {
-  ErroPadrao: {
-    description: 'Resposta de erro padrão',
+  // Respostas de Sucesso
+  RespostaSucesso: {
+    description: '✅ Requisição processada com sucesso',
     content: {
       'application/json': {
         schema: {
-          $ref: '#/components/schemas/Erro'
+          $ref: '#/components/schemas/RespostaSucesso'
         }
       }
     }
   },
-  RespostaSucesso: {
-    description: 'Resposta de sucesso',
+  RespostaCriacao: {
+    description: '✅ Recurso criado com sucesso',
     content: {
       'application/json': {
         schema: {
@@ -372,11 +373,300 @@ export const swaggerResponses = {
     }
   },
   RespostaLista: {
-    description: 'Resposta com lista paginada',
+    description: '✅ Lista de recursos retornada com sucesso',
     content: {
       'application/json': {
         schema: {
           $ref: '#/components/schemas/RespostaLista'
+        }
+      }
+    }
+  },
+  RespostaExclusao: {
+    description: '✅ Recurso removido com sucesso',
+    content: {
+      'application/json': {
+        schema: {
+          type: 'object',
+          properties: {
+            sucesso: { type: 'boolean', example: true },
+            mensagem: { type: 'string', example: 'Recurso removido com sucesso' },
+            timestamp: { type: 'string', format: 'date-time' }
+          }
+        }
+      }
+    }
+  },
+
+  // Respostas de Erro - 4xx
+  ErroValidacao: {
+    description: '❌ Dados de entrada inválidos ou malformados',
+    content: {
+      'application/json': {
+        schema: {
+          $ref: '#/components/schemas/Erro'
+        },
+        examples: {
+          dadosInvalidos: {
+            summary: 'Dados de validação inválidos',
+            value: {
+              codigo: 'ERRO_VALIDACAO',
+              mensagem: 'Dados de entrada inválidos',
+              detalhes: {
+                statusCode: 400,
+                statusName: 'Bad Request',
+                contexto: 'validacao',
+                descricao: 'Requisição inválida ou malformada',
+                uso: 'Dados de entrada inválidos, validações falharam, parâmetros incorretos',
+                erros: [
+                  { campo: 'nome', mensagem: 'Nome deve ter entre 3 e 80 caracteres', valor: 'Jo' },
+                  { campo: 'telefoneE164', mensagem: 'Telefone deve estar no formato E.164', valor: '11999999999' }
+                ]
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  ErroNaoAutorizado: {
+    description: '❌ Não autorizado - autenticação necessária',
+    content: {
+      'application/json': {
+        schema: {
+          $ref: '#/components/schemas/Erro'
+        },
+        examples: {
+          tokenInvalido: {
+            summary: 'Token de acesso inválido',
+            value: {
+              codigo: 'NAO_AUTORIZADO',
+              mensagem: 'Token de acesso inválido ou ausente',
+              detalhes: {
+                statusCode: 401,
+                statusName: 'Unauthorized',
+                contexto: 'autenticacao',
+                descricao: 'Não autorizado - autenticação necessária',
+                uso: 'Token de acesso inválido ou ausente',
+                sugestao: 'Verifique se o token está correto e não expirou'
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  ErroAcessoNegado: {
+    description: '❌ Acesso negado - sem permissão para o recurso',
+    content: {
+      'application/json': {
+        schema: {
+          $ref: '#/components/schemas/Erro'
+        },
+        examples: {
+          semPermissao: {
+            summary: 'Usuário sem permissão',
+            value: {
+              codigo: 'ACESSO_NEGADO',
+              mensagem: 'Sem permissão para acessar este recurso',
+              detalhes: {
+                statusCode: 403,
+                statusName: 'Forbidden',
+                contexto: 'autorizacao',
+                descricao: 'Acesso negado - sem permissão para o recurso',
+                uso: 'Usuário autenticado mas sem permissão para a operação',
+                sugestao: 'Entre em contato com o administrador para solicitar permissões'
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  ErroNaoEncontrado: {
+    description: '❌ Recurso não encontrado',
+    content: {
+      'application/json': {
+        schema: {
+          $ref: '#/components/schemas/Erro'
+        },
+        examples: {
+          recursoInexistente: {
+            summary: 'Recurso não encontrado',
+            value: {
+              codigo: 'NAO_ENCONTRADO',
+              mensagem: 'Passageiro não encontrado',
+              detalhes: {
+                statusCode: 404,
+                statusName: 'Not Found',
+                contexto: 'passageiro',
+                descricao: 'Recurso não encontrado',
+                uso: 'ID inválido, endpoint inexistente, recurso removido',
+                tipo: 'passageiro',
+                id: '123e4567-e89b-12d3-a456-426614174000',
+                sugestao: 'Verifique se o ID está correto e se o recurso ainda existe'
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  ErroMetodoNaoPermitido: {
+    description: '❌ Método HTTP não permitido para este endpoint',
+    content: {
+      'application/json': {
+        schema: {
+          $ref: '#/components/schemas/Erro'
+        },
+        examples: {
+          metodoInvalido: {
+            summary: 'Método HTTP incorreto',
+            value: {
+              codigo: 'METODO_NAO_PERMITIDO',
+              mensagem: 'Método POST não é permitido para este endpoint',
+              detalhes: {
+                statusCode: 405,
+                statusName: 'Method Not Allowed',
+                contexto: 'http',
+                descricao: 'Método HTTP não permitido para este endpoint',
+                uso: 'Tentativa de usar POST em endpoint que só aceita GET',
+                sugestao: 'Verifique a documentação para ver os métodos permitidos'
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  ErroConflito: {
+    description: '❌ Conflito com o estado atual do recurso',
+    content: {
+      'application/json': {
+        schema: {
+          $ref: '#/components/schemas/Erro'
+        },
+        examples: {
+          telefoneDuplicado: {
+            summary: 'Telefone já em uso',
+            value: {
+              codigo: 'REGRA_NEGOCIO',
+              mensagem: 'Telefone já está em uso por outro passageiro',
+              detalhes: {
+                statusCode: 409,
+                statusName: 'Conflict',
+                contexto: 'passageiro',
+                descricao: 'Conflito com o estado atual do recurso',
+                uso: 'Telefone duplicado, regras de negócio violadas, estado inválido',
+                tipo: 'REGRA_NEGOCIO',
+                telefone: '+5511999999999',
+                sugestao: 'Verifique as regras de negócio antes de executar a operação'
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  ErroEstadoInvalido: {
+    description: '❌ Entidade não processável - validação semântica falhou',
+    content: {
+      'application/json': {
+        schema: {
+          $ref: '#/components/schemas/Erro'
+        },
+        examples: {
+          estadoIncorreto: {
+            summary: 'Estado inválido para operação',
+            value: {
+              codigo: 'ESTADO_INVALIDO',
+              mensagem: 'Corrida não pode ser cancelada no estado atual',
+              detalhes: {
+                statusCode: 422,
+                statusName: 'Unprocessable Entity',
+                contexto: 'corrida',
+                descricao: 'Entidade não processável - validação semântica falhou',
+                uso: 'Dados válidos sintaticamente mas inválidos semanticamente',
+                tipo: 'ESTADO_INVALIDO',
+                statusAtual: 'CONCLUIDA',
+                sugestao: 'Verifique se o recurso está no estado correto para esta operação'
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  ErroLimiteRequisicoes: {
+    description: '❌ Muitas requisições - limite de taxa excedido',
+    content: {
+      'application/json': {
+        schema: {
+          $ref: '#/components/schemas/Erro'
+        },
+        examples: {
+          rateLimitExcedido: {
+            summary: 'Rate limit excedido',
+            value: {
+              codigo: 'LIMITE_REQUISICOES',
+              mensagem: 'Muitas requisições. Tente novamente em 1 minuto.',
+              detalhes: {
+                statusCode: 429,
+                statusName: 'Too Many Requests',
+                contexto: 'rate-limit',
+                descricao: 'Muitas requisições - limite de taxa excedido',
+                uso: 'Rate limiting ativo, muitas requisições em pouco tempo',
+                tipo: 'LIMITE_REQUISICOES',
+                sugestao: 'Aguarde 1 minuto antes de fazer novas requisições',
+                limite: 100,
+                janela: '1 minuto'
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+
+  // Respostas de Erro - 5xx
+  ErroInterno: {
+    description: '❌ Erro interno do servidor',
+    content: {
+      'application/json': {
+        schema: {
+          $ref: '#/components/schemas/Erro'
+        },
+        examples: {
+          erroSistema: {
+            summary: 'Erro interno do sistema',
+            value: {
+              codigo: 'ERRO_INTERNO',
+              mensagem: 'Erro interno do servidor',
+              detalhes: {
+                statusCode: 500,
+                statusName: 'Internal Server Error',
+                contexto: 'sistema',
+                descricao: 'Erro interno do servidor',
+                uso: 'Erro não esperado, exceção não tratada, problema de sistema',
+                tipo: 'ERRO_INTERNO',
+                sugestao: 'Tente novamente mais tarde ou entre em contato com o suporte',
+                timestamp: '2024-01-15T10:30:00.000Z',
+                requestId: 'abc123def'
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+
+  // Resposta de erro padrão (para compatibilidade)
+  ErroPadrao: {
+    description: '❌ Resposta de erro padrão',
+    content: {
+      'application/json': {
+        schema: {
+          $ref: '#/components/schemas/Erro'
         }
       }
     }

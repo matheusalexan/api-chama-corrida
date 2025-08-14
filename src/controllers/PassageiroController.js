@@ -1,6 +1,6 @@
 import { PassageiroService } from '../models/Passageiro.js';
 import { asyncErrorHandler } from '../middleware/errorHandler.js';
-import { criarRespostaSucesso, criarRespostaCriacao, criarRespostaLista, aplicarPaginacao } from '../utils/respostas.js';
+import { criarRespostaSucesso, criarRespostaCriacao, criarRespostaLista, aplicarPaginacao, criarRespostaNaoEncontrado, criarRespostaValidacao, criarRespostaRegraNegocio } from '../utils/respostas.js';
 
 /**
  * Controller para operações relacionadas aos passageiros
@@ -13,9 +13,31 @@ export class PassageiroController {
   static criar = asyncErrorHandler(async (req, res) => {
     const { nome, telefoneE164 } = req.body;
 
+    // Validações
+    if (!nome || typeof nome !== 'string' || nome.length < 3 || nome.length > 80) {
+      return res.status(400).json(criarRespostaValidacao([
+        { campo: 'nome', mensagem: 'Nome deve ter entre 3 e 80 caracteres', valor: nome }
+      ], 'passageiro'));
+    }
+
+    if (!telefoneE164 || !/^\+[0-9]{10,15}$/.test(telefoneE164)) {
+      return res.status(400).json(criarRespostaValidacao([
+        { campo: 'telefoneE164', mensagem: 'Telefone deve estar no formato E.164 (ex: +5511999999999)', valor: telefoneE164 }
+      ], 'passageiro'));
+    }
+
+    // Verifica se o telefone já está em uso
+    const telefoneExistente = PassageiroService.buscarPorTelefone(telefoneE164);
+    if (telefoneExistente) {
+      return res.status(409).json(criarRespostaRegraNegocio(
+        'Telefone já está em uso por outro passageiro',
+        { telefone: telefoneE164 },
+        'passageiro'
+      ));
+    }
+
     const passageiro = PassageiroService.criar(nome, telefoneE164);
-    
-    res.status(201).json(criarRespostaCriacao(passageiro));
+    return res.status(201).json(criarRespostaCriacao(passageiro, 'passageiro'));
   });
 
   /**
@@ -28,14 +50,10 @@ export class PassageiroController {
     const passageiro = PassageiroService.buscarPorId(id);
     
     if (!passageiro) {
-      return res.status(404).json({
-        codigo: 'NAO_ENCONTRADO',
-        mensagem: 'Passageiro não encontrado',
-        detalhes: { id }
-      });
+      return res.status(404).json(criarRespostaNaoEncontrado('passageiro', id, 'passageiro'));
     }
 
-    res.json(criarRespostaSucesso(passageiro));
+    res.json(criarRespostaSucesso(passageiro, 'passageiro'));
   });
 
   /**
@@ -43,15 +61,15 @@ export class PassageiroController {
    * @route GET /api/v1/passageiros
    */
   static listarTodos = asyncErrorHandler(async (req, res) => {
-    const { paginacao } = req;
+    const { pagina, limite } = req.query;
     
     const todosPassageiros = PassageiroService.listarTodos();
     const total = todosPassageiros.length;
     
     // Aplica paginação
-    const passageirosPaginados = aplicarPaginacao(todosPassageiros, paginacao);
+    const { dados, meta } = aplicarPaginacao(todosPassageiros, parseInt(pagina), parseInt(limite));
     
-    res.json(criarRespostaLista(passageirosPaginados, paginacao, total));
+    res.json(criarRespostaLista(dados, meta, total, 'passageiro'));
   });
 
   /**
@@ -64,14 +82,10 @@ export class PassageiroController {
     const passageiro = PassageiroService.buscarPorTelefone(telefone);
     
     if (!passageiro) {
-      return res.status(404).json({
-        codigo: 'NAO_ENCONTRADO',
-        mensagem: 'Passageiro não encontrado',
-        detalhes: { telefone }
-      });
+      return res.status(404).json(criarRespostaNaoEncontrado('passageiro', telefone, 'passageiro'));
     }
 
-    res.json(criarRespostaSucesso(passageiro));
+    res.json(criarRespostaSucesso(passageiro, 'passageiro'));
   });
 
   /**
@@ -85,51 +99,43 @@ export class PassageiroController {
     const passageiro = PassageiroService.buscarPorId(id);
     
     if (!passageiro) {
-      return res.status(404).json({
-        codigo: 'NAO_ENCONTRADO',
-        mensagem: 'Passageiro não encontrado',
-        detalhes: { id }
-      });
+      return res.status(404).json(criarRespostaNaoEncontrado('passageiro', id, 'passageiro'));
     }
 
     // Validações
     if (nome !== undefined) {
       if (typeof nome !== 'string' || nome.length < 3 || nome.length > 80) {
-        return res.status(400).json({
-          codigo: 'ERRO_VALIDACAO',
-          mensagem: 'Nome deve ter entre 3 e 80 caracteres',
-          detalhes: { nome }
-        });
+        return res.status(400).json(criarRespostaValidacao([
+          { campo: 'nome', mensagem: 'Nome deve ter entre 3 e 80 caracteres', valor: nome }
+        ], 'passageiro'));
       }
       passageiro.nome = nome;
     }
 
     if (telefoneE164 !== undefined) {
       if (!/^\+[0-9]{10,15}$/.test(telefoneE164)) {
-        return res.status(400).json({
-          codigo: 'ERRO_VALIDACAO',
-          mensagem: 'Telefone deve estar no formato E.164 (ex: +5511999999999)',
-          detalhes: { telefoneE164 }
-        });
+        return res.status(400).json(criarRespostaValidacao([
+          { campo: 'telefoneE164', mensagem: 'Telefone deve estar no formato E.164 (ex: +5511999999999)', valor: telefoneE164 }
+        ], 'passageiro'));
       }
 
       // Verifica se o telefone já está em uso por outro passageiro
       const outroPassageiro = PassageiroService.buscarPorTelefone(telefoneE164);
       if (outroPassageiro && outroPassageiro.id !== id) {
-        return res.status(409).json({
-          codigo: 'REGRA_NEGOCIO',
-          mensagem: 'Telefone já está em uso por outro passageiro',
-          detalhes: { telefoneE164 }
-        });
+        return res.status(409).json(criarRespostaRegraNegocio(
+          'Telefone já está em uso por outro passageiro',
+          { telefone: telefoneE164 },
+          'passageiro'
+        ));
       }
 
       passageiro.telefoneE164 = telefoneE164;
     }
 
-    // Atualiza timestamp
-    passageiro.atualizadoEm = new Date().toISOString();
-
-    res.json(criarRespostaSucesso(passageiro));
+    // Atualiza o passageiro
+    const passageiroAtualizado = PassageiroService.atualizar(id, passageiro);
+    
+    res.json(criarRespostaSucesso(passageiroAtualizado, 'passageiro'));
   });
 
   /**
@@ -142,53 +148,38 @@ export class PassageiroController {
     const passageiro = PassageiroService.buscarPorId(id);
     
     if (!passageiro) {
-      return res.status(404).json({
-        codigo: 'NAO_ENCONTRADO',
-        mensagem: 'Passageiro não encontrado',
-        detalhes: { id }
-      });
+      return res.status(404).json(criarRespostaNaoEncontrado('passageiro', id, 'passageiro'));
     }
 
-    const removido = PassageiroService.deletar(id);
+    PassageiroService.deletar(id);
     
-    if (removido) {
-      res.json(criarRespostaSucesso({
-        mensagem: 'Passageiro removido com sucesso',
-        id
-      }));
-    } else {
-      res.status(500).json({
-        codigo: 'ERRO_INTERNO',
-        mensagem: 'Erro ao remover passageiro',
-        detalhes: { id }
-      });
-    }
+    res.status(204).json({
+      sucesso: true,
+      mensagem: 'Passageiro removido com sucesso',
+      timestamp: new Date().toISOString()
+    });
   });
 
   /**
-   * Busca passageiros por nome (busca parcial)
+   * Busca passageiros por nome
    * @route GET /api/v1/passageiros/buscar/:nome
    */
   static buscarPorNome = asyncErrorHandler(async (req, res) => {
     const { nome } = req.params;
-    const { paginacao } = req;
+    const { pagina, limite } = req.query;
 
     if (!nome || nome.length < 2) {
-      return res.status(400).json({
-        codigo: 'ERRO_VALIDACAO',
-        mensagem: 'Nome deve ter pelo menos 2 caracteres para busca',
-        detalhes: { nome }
-      });
+      return res.status(400).json(criarRespostaValidacao([
+        { campo: 'nome', mensagem: 'Nome deve ter pelo menos 2 caracteres', valor: nome }
+      ], 'passageiro'));
     }
 
-    const todosPassageiros = PassageiroService.listarTodos();
-    const passageirosFiltrados = todosPassageiros.filter(p => 
-      p.nome.toLowerCase().includes(nome.toLowerCase())
-    );
-
-    const total = passageirosFiltrados.length;
-    const passageirosPaginados = aplicarPaginacao(passageirosFiltrados, paginacao);
-
-    res.json(criarRespostaLista(passageirosPaginados, paginacao, total));
+    const passageiros = PassageiroService.buscarPorNome(nome);
+    const total = passageiros.length;
+    
+    // Aplica paginação
+    const { dados, meta } = aplicarPaginacao(passageiros, parseInt(pagina), parseInt(limite));
+    
+    res.json(criarRespostaLista(dados, meta, total, 'passageiro'));
   });
 } 

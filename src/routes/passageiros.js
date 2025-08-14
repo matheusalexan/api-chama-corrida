@@ -34,36 +34,11 @@ const router = express.Router();
  *                 example: "+5511999999999"
  *     responses:
  *       201:
- *         description: Passageiro criado com sucesso
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 dados:
- *                   $ref: '#/components/schemas/Passageiro'
- *                 sucesso:
- *                   type: boolean
- *                   example: true
- *                 timestamp:
- *                   type: string
- *                   format: date-time
+ *         $ref: '#/components/responses/RespostaCriacao'
  *       400:
- *         $ref: '#/components/responses/ErroPadrao'
- *         examples:
- *           erroValidacao:
- *             value:
- *               codigo: "ERRO_VALIDACAO"
- *               mensagem: "Validação falhou: Nome deve ter entre 3 e 80 caracteres"
- *               detalhes: {}
+ *         $ref: '#/components/responses/ErroValidacao'
  *       409:
- *         $ref: '#/components/responses/ErroPadrao'
- *         examples:
- *           telefoneDuplicado:
- *             value:
- *               codigo: "REGRA_NEGOCIO"
- *               mensagem: "Telefone já está em uso por outro passageiro"
- *               detalhes: { "telefone": "+5511999999999" }
+ *         $ref: '#/components/responses/ErroConflito'
  * 
  *   get:
  *     summary: Listar todos os passageiros
@@ -87,51 +62,9 @@ const router = express.Router();
  *         description: Número de itens por página
  *     responses:
  *       200:
- *         description: Lista de passageiros retornada com sucesso
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 dados:
- *                   type: array
- *                   items:
- *                     $ref: '#/components/schemas/Passageiro'
- *                 meta:
- *                   type: object
- *                   properties:
- *                     pagina:
- *                       type: integer
- *                       example: 1
- *                     limite:
- *                       type: integer
- *                       example: 20
- *                     total:
- *                       type: integer
- *                       example: 150
- *                     totalPaginas:
- *                       type: integer
- *                       example: 8
- *                     temProxima:
- *                       type: boolean
- *                       example: true
- *                     temAnterior:
- *                       type: boolean
- *                       example: false
- *                 sucesso:
- *                   type: boolean
- *                   example: true
- *                 timestamp:
- *                   type: string
- *                   format: date-time
+ *         $ref: '#/components/responses/RespostaLista'
  *       400:
- *         $ref: '#/components/responses/ErroPadrao'
- *         examples:
- *           paginacaoInvalida:
- *             value:
- *               codigo: "ERRO_VALIDACAO"
- *               mensagem: "Parâmetro limite deve ser um número entre 1 e 100"
- *               detalhes: {}
+ *         $ref: '#/components/responses/ErroValidacao'
  * 
  * /passageiros/{id}:
  *   get:
@@ -149,36 +82,11 @@ const router = express.Router();
  *         example: "123e4567-e89b-12d3-a456-426614174000"
  *     responses:
  *       200:
- *         description: Passageiro encontrado com sucesso
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 dados:
- *                   $ref: '#/components/schemas/Passageiro'
- *                 sucesso:
- *                   type: boolean
- *                   example: true
- *                 timestamp:
- *                   type: string
- *                   format: date-time
+ *         $ref: '#/components/responses/RespostaSucesso'
  *       400:
- *         $ref: '#/components/responses/ErroPadrao'
- *         examples:
- *           uuidInvalido:
- *             value:
- *               codigo: "ERRO_VALIDACAO"
- *               mensagem: "Parâmetro id deve ser um UUID válido"
- *               detalhes: {}
+ *         $ref: '#/components/responses/ErroValidacao'
  *       404:
- *         $ref: '#/components/responses/ErroPadrao'
- *         examples:
- *           naoEncontrado:
- *             value:
- *               codigo: "NAO_ENCONTRADO"
- *               mensagem: "Passageiro não encontrado"
- *               detalhes: { "id": "123e4567-e89b-12d3-a456-426614174000" }
+ *         $ref: '#/components/responses/ErroNaoEncontrado'
  * 
  *   put:
  *     summary: Atualizar passageiro
@@ -204,35 +112,22 @@ const router = express.Router();
  *                 type: string
  *                 minLength: 3
  *                 maxLength: 80
- *                 description: Novo nome do passageiro
- *                 example: "João Silva Santos"
+ *                 description: Nome completo do passageiro
+ *                 example: "João Silva Santos Atualizado"
  *               telefoneE164:
  *                 type: string
  *                 pattern: '^\+[0-9]{10,15}$'
- *                 description: Novo número de telefone
+ *                 description: Número de telefone no formato E.164
  *                 example: "+5511999999999"
  *     responses:
  *       200:
- *         description: Passageiro atualizado com sucesso
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 dados:
- *                   $ref: '#/components/schemas/Passageiro'
- *                 sucesso:
- *                   type: boolean
- *                   example: true
- *                 timestamp:
- *                   type: string
- *                   format: date-time
+ *         $ref: '#/components/responses/RespostaSucesso'
  *       400:
- *         $ref: '#/components/responses/ErroPadrao'
+ *         $ref: '#/components/responses/ErroValidacao'
  *       404:
- *         $ref: '#/components/responses/ErroPadrao'
+ *         $ref: '#/components/responses/ErroNaoEncontrado'
  *       409:
- *         $ref: '#/components/responses/ErroPadrao'
+ *         $ref: '#/components/responses/ErroConflito'
  * 
  *   delete:
  *     summary: Remover passageiro
@@ -248,36 +143,17 @@ const router = express.Router();
  *         description: ID único do passageiro
  *         example: "123e4567-e89b-12d3-a456-426614174000"
  *     responses:
- *       200:
- *         description: Passageiro removido com sucesso
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 dados:
- *                   type: object
- *                   properties:
- *                     mensagem:
- *                       type: string
- *                       example: "Passageiro removido com sucesso"
- *                     id:
- *                       type: string
- *                       format: uuid
- *                       example: "123e4567-e89b-12d3-a456-426614174000"
- *                 sucesso:
- *                   type: boolean
- *                   example: true
- *                 timestamp:
- *                   type: string
- *                   format: date-time
+ *       204:
+ *         $ref: '#/components/responses/RespostaExclusao'
+ *       400:
+ *         $ref: '#/components/responses/ErroValidacao'
  *       404:
- *         $ref: '#/components/responses/ErroPadrao'
+ *         $ref: '#/components/responses/ErroNaoEncontrado'
  * 
  * /passageiros/telefone/{telefone}:
  *   get:
  *     summary: Buscar passageiro por telefone
- *     description: Retorna um passageiro baseado no número de telefone
+ *     description: Busca um passageiro pelo número de telefone
  *     tags: [Passageiros]
  *     parameters:
  *       - in: path
@@ -290,27 +166,16 @@ const router = express.Router();
  *         example: "+5511999999999"
  *     responses:
  *       200:
- *         description: Passageiro encontrado com sucesso
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 dados:
- *                   $ref: '#/components/schemas/Passageiro'
- *                 sucesso:
- *                   type: boolean
- *                   example: true
- *                 timestamp:
- *                   type: string
- *                   format: date-time
+ *         $ref: '#/components/responses/RespostaSucesso'
+ *       400:
+ *         $ref: '#/components/responses/ErroValidacao'
  *       404:
- *         $ref: '#/components/responses/ErroPadrao'
+ *         $ref: '#/components/responses/ErroNaoEncontrado'
  * 
  * /passageiros/buscar/{nome}:
  *   get:
  *     summary: Buscar passageiros por nome
- *     description: Busca passageiros cujo nome contenha o termo fornecido
+ *     description: Busca passageiros cujo nome contenha o termo especificado
  *     tags: [Passageiros]
  *     parameters:
  *       - in: path
@@ -319,7 +184,7 @@ const router = express.Router();
  *         schema:
  *           type: string
  *           minLength: 2
- *         description: Nome ou parte do nome para busca
+ *         description: Termo para busca no nome
  *         example: "João"
  *       - in: query
  *         name: pagina
@@ -338,45 +203,9 @@ const router = express.Router();
  *         description: Número de itens por página
  *     responses:
  *       200:
- *         description: Busca realizada com sucesso
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 dados:
- *                   type: array
- *                   items:
- *                     $ref: '#/components/schemas/Passageiro'
- *                 meta:
- *                   type: object
- *                   properties:
- *                     pagina:
- *                       type: integer
- *                       example: 1
- *                     limite:
- *                       type: integer
- *                       example: 20
- *                     total:
- *                       type: integer
- *                       example: 5
- *                     totalPaginas:
- *                       type: integer
- *                       example: 1
- *                     temProxima:
- *                       type: boolean
- *                       example: false
- *                     temAnterior:
- *                       type: boolean
- *                       example: false
- *                 sucesso:
- *                   type: boolean
- *                   example: true
- *                 timestamp:
- *                   type: string
- *                   format: date-time
+ *         $ref: '#/components/responses/RespostaLista'
  *       400:
- *         $ref: '#/components/responses/ErroPadrao'
+ *         $ref: '#/components/responses/ErroValidacao'
  */
 
 // Aplicar middleware de paginação para rotas que listam dados
