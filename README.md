@@ -409,7 +409,6 @@ Este projeto está licenciado sob a Licença MIT - veja o arquivo [LICENSE](LICE
 
 - **Desenvolvedor**: Matheus Macedo
 - **Repositório**: [https://github.com/matheusalexan/api-chama-corrida](https://github.com/matheusalexan/api-chama-corrida)
-- **Email**: [seu-email@exemplo.com]
 
 ## Changelog
 
