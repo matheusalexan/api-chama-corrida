@@ -1,276 +1,150 @@
 import { MotoristaService } from '../models/Motorista.js';
-import { asyncErrorHandler } from '../middleware/errorHandler.js';
-import { criarRespostaSucesso, criarRespostaCriacao, criarRespostaLista, aplicarPaginacao } from '../utils/respostas.js';
 
-/**
- * Controller para operações relacionadas aos motoristas
- */
 export class MotoristaController {
-  /**
-   * Cria um novo motorista
-   * @route POST /api/v1/motoristas
-   */
-  static criar = asyncErrorHandler(async (req, res) => {
-    const { nome, telefoneE164, categoria } = req.body;
-
-    const motorista = MotoristaService.criar(nome, telefoneE164, categoria);
-    
-    res.status(201).json(criarRespostaCriacao(motorista));
-  });
-
-  /**
-   * Busca um motorista por ID
-   * @route GET /api/v1/motoristas/:id
-   */
-  static buscarPorId = asyncErrorHandler(async (req, res) => {
-    const { id } = req.params;
-
-    const motorista = MotoristaService.buscarPorId(id);
-    
-    if (!motorista) {
-      return res.status(404).json({
-        codigo: 'NAO_ENCONTRADO',
-        mensagem: 'Motorista não encontrado',
-        detalhes: { id }
-      });
-    }
-
-    res.json(criarRespostaSucesso(motorista));
-  });
-
-  /**
-   * Lista todos os motoristas com paginação
-   * @route GET /api/v1/motoristas
-   */
-  static listarTodos = asyncErrorHandler(async (req, res) => {
-    const { paginacao } = req;
-    
-    const todosMotoristas = MotoristaService.listarTodos();
-    const total = todosMotoristas.length;
-    
-    // Aplica paginação
-    const motoristasPaginados = aplicarPaginacao(todosMotoristas, paginacao);
-    
-    res.json(criarRespostaLista(motoristasPaginados, paginacao, total));
-  });
-
-  /**
-   * Busca motorista por telefone
-   * @route GET /api/v1/motoristas/telefone/:telefone
-   */
-  static buscarPorTelefone = asyncErrorHandler(async (req, res) => {
-    const { telefone } = req.params;
-
-    const motorista = MotoristaService.buscarPorTelefone(telefone);
-    
-    if (!motorista) {
-      return res.status(404).json({
-        codigo: 'NAO_ENCONTRADO',
-        mensagem: 'Motorista não encontrado',
-        detalhes: { telefone }
-      });
-    }
-
-    res.json(criarRespostaSucesso(motorista));
-  });
-
-  /**
-   * Busca motoristas disponíveis
-   * @route GET /api/v1/motoristas/disponiveis
-   */
-  static buscarDisponiveis = asyncErrorHandler(async (req, res) => {
-    const { categoria } = req.query;
-    const { paginacao } = req;
-
-    const motoristasDisponiveis = MotoristaService.buscarDisponiveis(categoria);
-    const total = motoristasDisponiveis.length;
-    
-    // Aplica paginação
-    const motoristasPaginados = aplicarPaginacao(motoristasDisponiveis, paginacao);
-    
-    res.json(criarRespostaLista(motoristasPaginados, paginacao, total));
-  });
-
-  /**
-   * Atualiza um motorista existente
-   * @route PUT /api/v1/motoristas/:id
-   */
-  static atualizar = asyncErrorHandler(async (req, res) => {
-    const { id } = req.params;
-    const { nome, telefoneE164, categoria } = req.body;
-
-    const motorista = MotoristaService.buscarPorId(id);
-    
-    if (!motorista) {
-      return res.status(404).json({
-        codigo: 'NAO_ENCONTRADO',
-        mensagem: 'Motorista não encontrado',
-        detalhes: { id }
-      });
-    }
-
-    // Validações
-    if (nome !== undefined) {
-      if (typeof nome !== 'string' || nome.length < 3 || nome.length > 80) {
+  static async criar(req, res) {
+    try {
+      const { nome, telefone, placa } = req.body;
+      
+      if (!nome || !telefone || !placa) {
         return res.status(400).json({
-          codigo: 'ERRO_VALIDACAO',
-          mensagem: 'Nome deve ter entre 3 e 80 caracteres',
-          detalhes: { nome }
-        });
-      }
-      motorista.nome = nome;
-    }
-
-    if (telefoneE164 !== undefined) {
-      if (!/^\+[0-9]{10,15}$/.test(telefoneE164)) {
-        return res.status(400).json({
-          codigo: 'ERRO_VALIDACAO',
-          mensagem: 'Telefone deve estar no formato E.164 (ex: +5511999999999)',
-          detalhes: { telefoneE164 }
+          message: 'Nome, telefone e placa são obrigatórios',
+          code: 'CAMPOS_OBRIGATORIOS'
         });
       }
 
-      // Verifica se o telefone já está em uso por outro motorista
-      const outroMotorista = MotoristaService.buscarPorTelefone(telefoneE164);
-      if (outroMotorista && outroMotorista.id !== id) {
+      const motorista = MotoristaService.criar(nome, telefone, placa);
+      
+      res.status(201).json({
+        message: 'Motorista criado com sucesso',
+        data: motorista
+      });
+    } catch (error) {
+      if (error.message.includes('Telefone já cadastrado')) {
         return res.status(409).json({
-          codigo: 'REGRA_NEGOCIO',
-          mensagem: 'Telefone já está em uso por outro motorista',
-          detalhes: { telefoneE164 }
+          message: error.message,
+          code: 'TELEFONE_DUPLICADO'
         });
       }
-
-      motorista.telefoneE164 = telefoneE164;
+      
+      res.status(400).json({
+        message: error.message,
+        code: 'ERRO_VALIDACAO'
+      });
     }
+  }
 
-    if (categoria !== undefined) {
-      if (!['ECONOMY', 'COMFORT'].includes(categoria)) {
-        return res.status(400).json({
-          codigo: 'ERRO_VALIDACAO',
-          mensagem: 'Categoria deve ser ECONOMY ou COMFORT',
-          detalhes: { categoria }
+  static async buscarPorId(req, res) {
+    try {
+      const { id } = req.params;
+      const motorista = MotoristaService.buscarPorId(id);
+      
+      if (!motorista) {
+        return res.status(404).json({
+          message: 'Motorista não encontrado',
+          code: 'NAO_ENCONTRADO'
         });
       }
-      motorista.categoria = categoria;
-    }
-
-    // Atualiza timestamp
-    motorista.atualizadoEm = new Date().toISOString();
-
-    res.json(criarRespostaSucesso(motorista));
-  });
-
-  /**
-   * Altera a disponibilidade de um motorista
-   * @route PATCH /api/v1/motoristas/:id/disponibilidade
-   */
-  static alterarDisponibilidade = asyncErrorHandler(async (req, res) => {
-    const { id } = req.params;
-    const { disponivel } = req.body;
-
-    if (typeof disponivel !== 'boolean') {
-      return res.status(400).json({
-        codigo: 'ERRO_VALIDACAO',
-        mensagem: 'Disponibilidade deve ser um valor booleano',
-        detalhes: { disponivel }
+      
+      res.json({
+        message: 'Motorista encontrado',
+        data: motorista
       });
-    }
-
-    const motorista = MotoristaService.alterarDisponibilidade(id, disponivel);
-    
-    if (!motorista) {
-      return res.status(404).json({
-        codigo: 'NAO_ENCONTRADO',
-        mensagem: 'Motorista não encontrado',
-        detalhes: { id }
-      });
-    }
-
-    res.json(criarRespostaSucesso(motorista));
-  });
-
-  /**
-   * Remove um motorista
-   * @route DELETE /api/v1/motoristas/:id
-   */
-  static remover = asyncErrorHandler(async (req, res) => {
-    const { id } = req.params;
-
-    const motorista = MotoristaService.buscarPorId(id);
-    
-    if (!motorista) {
-      return res.status(404).json({
-        codigo: 'NAO_ENCONTRADO',
-        mensagem: 'Motorista não encontrado',
-        detalhes: { id }
-      });
-    }
-
-    const removido = MotoristaService.deletar(id);
-    
-    if (removido) {
-      res.json(criarRespostaSucesso({
-        mensagem: 'Motorista removido com sucesso',
-        id
-      }));
-    } else {
+    } catch (error) {
       res.status(500).json({
-        codigo: 'ERRO_INTERNO',
-        mensagem: 'Erro ao remover motorista',
-        detalhes: { id }
+        message: 'Erro interno do servidor',
+        code: 'ERRO_INTERNO'
       });
     }
-  });
+  }
 
-  /**
-   * Busca motoristas por categoria
-   * @route GET /api/v1/motoristas/categoria/:categoria
-   */
-  static buscarPorCategoria = asyncErrorHandler(async (req, res) => {
-    const { categoria } = req.params;
-    const { paginacao } = req;
-
-    if (!['ECONOMY', 'COMFORT'].includes(categoria)) {
-      return res.status(400).json({
-        codigo: 'ERRO_VALIDACAO',
-        mensagem: 'Categoria deve ser ECONOMY ou COMFORT',
-        detalhes: { categoria }
+  static async buscarPorTelefone(req, res) {
+    try {
+      const { telefone } = req.params;
+      const motorista = MotoristaService.buscarPorTelefone(telefone);
+      
+      if (!motorista) {
+        return res.status(404).json({
+          message: 'Motorista não encontrado',
+          code: 'NAO_ENCONTRADO'
+        });
+      }
+      
+      res.json({
+        message: 'Motorista encontrado',
+        data: motorista
+      });
+    } catch (error) {
+      res.status(500).json({
+        message: 'Erro interno do servidor',
+        code: 'ERRO_INTERNO'
       });
     }
+  }
 
-    const todosMotoristas = MotoristaService.listarTodos();
-    const motoristasFiltrados = todosMotoristas.filter(m => m.categoria === categoria);
+  static async alterarStatus(req, res) {
+    try {
+      const { id } = req.params;
+      const { status } = req.body;
+      
+      if (!status) {
+        return res.status(400).json({
+          message: 'Status é obrigatório',
+          code: 'CAMPOS_OBRIGATORIOS'
+        });
+      }
 
-    const total = motoristasFiltrados.length;
-    const motoristasPaginados = aplicarPaginacao(motoristasFiltrados, paginacao);
-
-    res.json(criarRespostaLista(motoristasPaginados, paginacao, total));
-  });
-
-  /**
-   * Busca motoristas por nome (busca parcial)
-   * @route GET /api/v1/motoristas/buscar/:nome
-   */
-  static buscarPorNome = asyncErrorHandler(async (req, res) => {
-    const { nome } = req.params;
-    const { paginacao } = req;
-
-    if (!nome || nome.length < 2) {
-      return res.status(400).json({
-        codigo: 'ERRO_VALIDACAO',
-        mensagem: 'Nome deve ter pelo menos 2 caracteres para busca',
-        detalhes: { nome }
+      const motorista = MotoristaService.alterarStatus(id, status);
+      
+      res.json({
+        message: 'Status alterado com sucesso',
+        data: motorista
+      });
+    } catch (error) {
+      if (error.message.includes('Motorista não encontrado')) {
+        return res.status(404).json({
+          message: error.message,
+          code: 'NAO_ENCONTRADO'
+        });
+      }
+      
+      res.status(400).json({
+        message: error.message,
+        code: 'ERRO_VALIDACAO'
       });
     }
+  }
 
-    const todosMotoristas = MotoristaService.listarTodos();
-    const motoristasFiltrados = todosMotoristas.filter(m => 
-      m.nome.toLowerCase().includes(nome.toLowerCase())
-    );
+  static async buscarDisponiveis(req, res) {
+    try {
+      const motoristas = MotoristaService.buscarDisponiveis();
+      
+      res.json({
+        message: 'Motoristas disponíveis',
+        data: motoristas,
+        total: motoristas.length
+      });
+    } catch (error) {
+      res.status(500).json({
+        message: 'Erro interno do servidor',
+        code: 'ERRO_INTERNO'
+      });
+    }
+  }
 
-    const total = motoristasFiltrados.length;
-    const motoristasPaginados = aplicarPaginacao(motoristasFiltrados, paginacao);
-
-    res.json(criarRespostaLista(motoristasPaginados, paginacao, total));
-  });
-} 
+  static async listarTodos(req, res) {
+    try {
+      const motoristas = MotoristaService.listarTodos();
+      
+      res.json({
+        message: 'Lista de motoristas',
+        data: motoristas,
+        total: motoristas.length
+      });
+    } catch (error) {
+      res.status(500).json({
+        message: 'Erro interno do servidor',
+        code: 'ERRO_INTERNO'
+      });
+    }
+  }
+}

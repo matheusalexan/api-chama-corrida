@@ -1,25 +1,20 @@
 {
   "name": "api-chama-corrida",
   "version": "1.0.0",
-  "description": "API de Transporte Sob Demanda - Sistema de chamada de corridas com armazenamento em memória",
-  "type": "module",
+  "description": "API simples para sistema de corridas",
   "main": "src/server.js",
+  "type": "module",
   "scripts": {
     "start": "node src/server.js",
-    "dev": "node --watch src/server.js",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "dev": "node --watch src/server.js"
   },
-  "keywords": ["api", "transporte", "corridas", "uber", "99"],
-  "author": "Matheus Macedo",
-  "license": "MIT",
   "dependencies": {
     "express": "^4.18.2",
     "swagger-ui-express": "^5.0.0",
     "swagger-jsdoc": "^6.2.8",
-    "uuid": "^9.0.1",
-    "express-rate-limit": "^7.1.5"
+    "uuid": "^9.0.1"
   },
-  "engines": {
-    "node": ">=18.0.0"
-  }
-} 
+  "keywords": ["api", "corridas", "uber", "99"],
+  "author": "Portfolio",
+  "license": "MIT"
+}

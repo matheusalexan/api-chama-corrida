@@ -1,76 +1,186 @@
 import express from 'express';
 import { CorridaController } from '../controllers/CorridaController.js';
-import { validarUUID, validarPaginacao, validarStatusCorrida } from '../middleware/validacao.js';
 
 const router = express.Router();
 
 /**
  * @swagger
- * /corridas:
- *   get:
- *     summary: Listar todas as corridas
- *     description: Retorna uma lista paginada de todas as corridas
+ * components:
+ *   schemas:
+ *     Coordenadas:
+ *       type: object
+ *       required:
+ *         - lat
+ *         - lng
+ *       properties:
+ *         lat:
+ *           type: number
+ *           minimum: -90
+ *           maximum: 90
+ *           description: Latitude
+ *           example: -23.5505
+ *         lng:
+ *           type: number
+ *           minimum: -180
+ *           maximum: 180
+ *           description: Longitude
+ *           example: -46.6333
+ *     Corrida:
+ *       type: object
+ *       required:
+ *         - passageiroId
+ *         - origem
+ *         - destino
+ *       properties:
+ *         id:
+ *           type: string
+ *           format: uuid
+ *           description: ID único da corrida
+ *         passageiroId:
+ *           type: string
+ *           format: uuid
+ *           description: ID do passageiro
+ *         origem:
+ *           $ref: '#/components/schemas/Coordenadas'
+ *         destino:
+ *           $ref: '#/components/schemas/Coordenadas'
+ *         status:
+ *           type: string
+ *           enum: [aguardando_motorista, aceita, iniciada, finalizada, cancelada_pelo_passageiro, cancelada_pelo_motorista]
+ *           description: Status atual da corrida
+ *         motoristaId:
+ *           type: string
+ *           format: uuid
+ *           nullable: true
+ *           description: ID do motorista (quando aceita)
+ *         precoEstimado:
+ *           type: number
+ *           description: Preço estimado da corrida
+ *         precoFinal:
+ *           type: number
+ *           nullable: true
+ *           description: Preço final da corrida
+ *         inicioEm:
+ *           type: string
+ *           format: date-time
+ *           nullable: true
+ *           description: Data de início
+ *         fimEm:
+ *           type: string
+ *           format: date-time
+ *           nullable: true
+ *           description: Data de fim
+ *         criadoEm:
+ *           type: string
+ *           format: date-time
+ *           description: Data de criação
+ *         atualizadoEm:
+ *           type: string
+ *           format: date-time
+ *           description: Data da última atualização
+ *     CorridaInput:
+ *       type: object
+ *       required:
+ *         - passageiroId
+ *         - origem
+ *         - destino
+ *       properties:
+ *         passageiroId:
+ *           type: string
+ *           format: uuid
+ *           example: "123e4567-e89b-12d3-a456-426614174000"
+ *         origem:
+ *           $ref: '#/components/schemas/Coordenadas'
+ *         destino:
+ *           $ref: '#/components/schemas/Coordenadas'
+ */
+
+/**
+ * @swagger
+ * /api/v1/corridas:
+ *   post:
+ *     summary: Criar nova corrida
  *     tags: [Corridas]
- *     parameters:
- *       - in: query
- *         name: pagina
- *         schema:
- *           type: integer
- *           minimum: 1
- *           default: 1
- *         description: Número da página
- *       - in: query
- *         name: limite
- *         schema:
- *           type: integer
- *           minimum: 1
- *           maximum: 100
- *           default: 20
- *         description: Número de itens por página
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             $ref: '#/components/schemas/CorridaInput'
  *     responses:
- *       200:
- *         description: Lista de corridas retornada com sucesso
+ *       201:
+ *         description: Corrida criada com sucesso
  *         content:
  *           application/json:
  *             schema:
  *               type: object
  *               properties:
- *                 dados:
+ *                 message:
+ *                   type: string
+ *                   example: "Corrida criada com sucesso"
+ *                 data:
+ *                   $ref: '#/components/schemas/Corrida'
+ *       400:
+ *         description: Dados inválidos
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Passageiro ID, origem e destino são obrigatórios"
+ *                 code:
+ *                   type: string
+ *                   example: "CAMPOS_OBRIGATORIOS"
+ *       409:
+ *         description: Passageiro já possui corrida em andamento
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Passageiro já possui corrida em andamento"
+ *                 code:
+ *                   type: string
+ *                   example: "CORRIDA_EM_ANDAMENTO"
+ */
+router.post('/', CorridaController.criar);
+
+/**
+ * @swagger
+ * /api/v1/corridas:
+ *   get:
+ *     summary: Listar todas as corridas
+ *     tags: [Corridas]
+ *     responses:
+ *       200:
+ *         description: Lista de corridas
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Lista de corridas"
+ *                 data:
  *                   type: array
  *                   items:
  *                     $ref: '#/components/schemas/Corrida'
- *                 meta:
- *                   type: object
- *                   properties:
- *                     pagina:
- *                       type: integer
- *                       example: 1
- *                     limite:
- *                       type: integer
- *                       example: 20
- *                     total:
- *                       type: integer
- *                       example: 75
- *                     totalPaginas:
- *                       type: integer
- *                       example: 4
- *                     temProxima:
- *                       type: boolean
- *                       example: true
- *                     temAnterior:
- *                       type: boolean
- *                       example: false
- *                 sucesso:
- *                   type: boolean
- *                   example: true
- *                 timestamp:
- *                   type: string
- *                   format: date-time
- * 
- * /corridas/{id}:
+ *                 total:
+ *                   type: integer
+ *                   example: 10
+ */
+router.get('/', CorridaController.listarTodas);
+
+/**
+ * @swagger
+ * /api/v1/corridas/{id}:
  *   get:
  *     summary: Buscar corrida por ID
- *     description: Retorna os dados de uma corrida específica
  *     tags: [Corridas]
  *     parameters:
  *       - in: path
@@ -79,71 +189,41 @@ const router = express.Router();
  *         schema:
  *           type: string
  *           format: uuid
- *         description: ID único da corrida
- *         example: "123e4567-e89b-12d3-a456-426614174000"
+ *         description: ID da corrida
  *     responses:
  *       200:
- *         description: Corrida encontrada com sucesso
+ *         description: Corrida encontrada
  *         content:
  *           application/json:
  *             schema:
  *               type: object
  *               properties:
- *                 dados:
+ *                 message:
+ *                   type: string
+ *                   example: "Corrida encontrada"
+ *                 data:
  *                   $ref: '#/components/schemas/Corrida'
- *                 sucesso:
- *                   type: boolean
- *                   example: true
- *                 timestamp:
- *                   type: string
- *                   format: date-time
  *       404:
- *         $ref: '#/components/responses/ErroPadrao'
- * 
- *   delete:
- *     summary: Remover corrida
- *     description: Remove uma corrida do sistema
- *     tags: [Corridas]
- *     parameters:
- *       - in: path
- *         name: id
- *         required: true
- *         schema:
- *           type: string
- *           format: uuid
- *         description: ID único da corrida
- *         example: "123e4567-e89b-12d3-a456-426614174000"
- *     responses:
- *       200:
- *         description: Corrida removida com sucesso
+ *         description: Corrida não encontrada
  *         content:
  *           application/json:
  *             schema:
  *               type: object
  *               properties:
- *                 dados:
- *                   type: object
- *                   properties:
- *                     mensagem:
- *                       type: string
- *                       example: "Corrida removida com sucesso"
- *                     id:
- *                       type: string
- *                       format: uuid
- *                       example: "123e4567-e89b-12d3-a456-426614174000"
- *                 sucesso:
- *                   type: boolean
- *                   example: true
- *                 timestamp:
+ *                 message:
  *                   type: string
- *                   format: date-time
- *       404:
- *         $ref: '#/components/responses/ErroPadrao'
- * 
- * /corridas/{id}/status:
+ *                   example: "Corrida não encontrada"
+ *                 code:
+ *                   type: string
+ *                   example: "NAO_ENCONTRADO"
+ */
+router.get('/:id', CorridaController.buscarPorId);
+
+/**
+ * @swagger
+ * /api/v1/corridas/{id}/aceitar:
  *   post:
- *     summary: Atualizar status da corrida
- *     description: Atualiza o status de uma corrida (máquina de estados)
+ *     summary: Motorista aceita corrida
  *     tags: [Corridas]
  *     parameters:
  *       - in: path
@@ -152,8 +232,7 @@ const router = express.Router();
  *         schema:
  *           type: string
  *           format: uuid
- *         description: ID único da corrida
- *         example: "123e4567-e89b-12d3-a456-426614174000"
+ *         description: ID da corrida
  *     requestBody:
  *       required: true
  *       content:
@@ -161,46 +240,85 @@ const router = express.Router();
  *           schema:
  *             type: object
  *             required:
- *               - status
+ *               - motoristaId
  *             properties:
- *               status:
+ *               motoristaId:
  *                 type: string
- *                 enum: [MOTORISTA_A_CAMINHO, EM_ANDAMENTO, CONCLUIDA]
- *                 description: Novo status da corrida
- *                 example: "EM_ANDAMENTO"
+ *                 format: uuid
+ *                 example: "123e4567-e89b-12d3-a456-426614174000"
  *     responses:
  *       200:
- *         description: Status da corrida atualizado com sucesso
+ *         description: Corrida aceita com sucesso
  *         content:
  *           application/json:
  *             schema:
  *               type: object
  *               properties:
- *                 dados:
- *                   type: object
- *                   properties:
- *                     mensagem:
- *                       type: string
- *                       example: "Status da corrida atualizado com sucesso"
- *                     corrida:
- *                       $ref: '#/components/schemas/Corrida'
- *                 sucesso:
- *                   type: boolean
- *                   example: true
- *                 timestamp:
+ *                 message:
  *                   type: string
- *                   format: date-time
+ *                   example: "Corrida aceita com sucesso"
+ *                 data:
+ *                   $ref: '#/components/schemas/Corrida'
  *       400:
- *         $ref: '#/components/responses/ErroPadrao'
+ *         description: Dados inválidos
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Motorista ID é obrigatório"
+ *                 code:
+ *                   type: string
+ *                   example: "CAMPOS_OBRIGATORIOS"
  *       404:
- *         $ref: '#/components/responses/ErroPadrao'
+ *         description: Corrida ou motorista não encontrado
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Motorista não encontrado"
+ *                 code:
+ *                   type: string
+ *                   example: "NAO_ENCONTRADO"
+ *       409:
+ *         description: Motorista não está disponível
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Motorista não está disponível"
+ *                 code:
+ *                   type: string
+ *                   example: "MOTORISTA_INDISPONIVEL"
  *       422:
- *         $ref: '#/components/responses/ErroPadrao'
- * 
- * /corridas/{id}/cancelar:
+ *         description: Estado inválido da corrida
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Corrida não está aguardando motorista"
+ *                 code:
+ *                   type: string
+ *                   example: "ESTADO_INVALIDO"
+ */
+router.post('/:id/aceitar', CorridaController.aceitar);
+
+/**
+ * @swagger
+ * /api/v1/corridas/{id}/iniciar:
  *   post:
- *     summary: Cancelar corrida pelo passageiro
- *     description: Permite que o passageiro cancele uma corrida (aplica multa de R$ 7,00)
+ *     summary: Iniciar corrida
  *     tags: [Corridas]
  *     parameters:
  *       - in: path
@@ -209,42 +327,54 @@ const router = express.Router();
  *         schema:
  *           type: string
  *           format: uuid
- *         description: ID único da corrida
- *         example: "123e4567-e89b-12d3-a456-426614174000"
+ *         description: ID da corrida
  *     responses:
  *       200:
- *         description: Corrida cancelada pelo passageiro com sucesso
+ *         description: Corrida iniciada com sucesso
  *         content:
  *           application/json:
  *             schema:
  *               type: object
  *               properties:
- *                 dados:
- *                   type: object
- *                   properties:
- *                     mensagem:
- *                       type: string
- *                       example: "Corrida cancelada pelo passageiro com sucesso"
- *                     corrida:
- *                       $ref: '#/components/schemas/Corrida'
- *                     multa:
- *                       type: string
- *                       example: "R$ 7,00 aplicada conforme regra de negócio"
- *                 sucesso:
- *                   type: boolean
- *                   example: true
- *                 timestamp:
+ *                 message:
  *                   type: string
- *                   format: date-time
+ *                   example: "Corrida iniciada com sucesso"
+ *                 data:
+ *                   $ref: '#/components/schemas/Corrida'
  *       404:
- *         $ref: '#/components/responses/ErroPadrao'
+ *         description: Corrida não encontrada
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Corrida não encontrada"
+ *                 code:
+ *                   type: string
+ *                   example: "NAO_ENCONTRADO"
  *       422:
- *         $ref: '#/components/responses/ErroPadrao'
- * 
- * /corridas/{id}/cancelar-motorista:
+ *         description: Estado inválido da corrida
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Corrida deve estar aceita para ser iniciada"
+ *                 code:
+ *                   type: string
+ *                   example: "ESTADO_INVALIDO"
+ */
+router.post('/:id/iniciar', CorridaController.iniciar);
+
+/**
+ * @swagger
+ * /api/v1/corridas/{id}/finalizar:
  *   post:
- *     summary: Cancelar corrida pelo motorista
- *     description: Permite que o motorista cancele uma corrida (preço final = R$ 0,00)
+ *     summary: Finalizar corrida
  *     tags: [Corridas]
  *     parameters:
  *       - in: path
@@ -253,42 +383,87 @@ const router = express.Router();
  *         schema:
  *           type: string
  *           format: uuid
- *         description: ID único da corrida
- *         example: "123e4567-e89b-12d3-a456-426614174000"
+ *         description: ID da corrida
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - distanciaKm
+ *               - duracaoMin
+ *             properties:
+ *               distanciaKm:
+ *                 type: number
+ *                 minimum: 0
+ *                 description: Distância percorrida em km
+ *                 example: 5.2
+ *               duracaoMin:
+ *                 type: number
+ *                 minimum: 0
+ *                 description: Duração da viagem em minutos
+ *                 example: 15
  *     responses:
  *       200:
- *         description: Corrida cancelada pelo motorista com sucesso
+ *         description: Corrida finalizada com sucesso
  *         content:
  *           application/json:
  *             schema:
  *               type: object
  *               properties:
- *                 dados:
- *                   type: object
- *                   properties:
- *                     mensagem:
- *                       type: string
- *                       example: "Corrida cancelada pelo motorista com sucesso"
- *                     corrida:
- *                       $ref: '#/components/schemas/Corrida'
- *                     precoFinal:
- *                       type: string
- *                       example: "R$ 0,00 (sem cobrança)"
- *                 sucesso:
- *                   type: boolean
- *                   example: true
- *                 timestamp:
+ *                 message:
  *                   type: string
- *                   format: date-time
+ *                   example: "Corrida finalizada com sucesso"
+ *                 data:
+ *                   $ref: '#/components/schemas/Corrida'
+ *       400:
+ *         description: Dados inválidos
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Distância e duração são obrigatórias"
+ *                 code:
+ *                   type: string
+ *                   example: "CAMPOS_OBRIGATORIOS"
  *       404:
- *         $ref: '#/components/responses/ErroPadrao'
+ *         description: Corrida não encontrada
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Corrida não encontrada"
+ *                 code:
+ *                   type: string
+ *                   example: "NAO_ENCONTRADO"
  *       422:
- *         $ref: '#/components/responses/ErroPadrao'
- * 
- * /corridas/{id}/concluir:
+ *         description: Estado inválido da corrida
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Corrida deve estar iniciada para ser finalizada"
+ *                 code:
+ *                   type: string
+ *                   example: "ESTADO_INVALIDO"
+ */
+router.post('/:id/finalizar', CorridaController.finalizar);
+
+/**
+ * @swagger
+ * /api/v1/corridas/{id}/cancelar:
  *   post:
- *     summary: Concluir corrida
- *     description: Marca uma corrida como concluída (apenas se estiver em andamento)
+ *     summary: Cancelar corrida
  *     tags: [Corridas]
  *     parameters:
  *       - in: path
@@ -297,110 +472,80 @@ const router = express.Router();
  *         schema:
  *           type: string
  *           format: uuid
- *         description: ID único da corrida
- *         example: "123e4567-e89b-12d3-a456-426614174000"
+ *         description: ID da corrida
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - porQuem
+ *             properties:
+ *               porQuem:
+ *                 type: string
+ *                 enum: [passageiro, motorista]
+ *                 example: "passageiro"
  *     responses:
  *       200:
- *         description: Corrida concluída com sucesso
+ *         description: Corrida cancelada com sucesso
  *         content:
  *           application/json:
  *             schema:
  *               type: object
  *               properties:
- *                 dados:
- *                   type: object
- *                   properties:
- *                     mensagem:
- *                       type: string
- *                       example: "Corrida concluída com sucesso"
- *                     corrida:
- *                       $ref: '#/components/schemas/Corrida'
- *                 sucesso:
- *                   type: boolean
- *                   example: true
- *                 timestamp:
+ *                 message:
  *                   type: string
- *                   format: date-time
- *       404:
- *         $ref: '#/components/responses/ErroPadrao'
- *       422:
- *         $ref: '#/components/responses/ErroPadrao'
- * 
- * /corridas/motorista/{motoristaId}:
- *   get:
- *     summary: Buscar corridas por motorista
- *     description: Retorna todas as corridas de um motorista específico
- *     tags: [Corridas]
- *     parameters:
- *       - in: path
- *         name: motoristaId
- *         required: true
- *         schema:
- *           type: string
- *           format: uuid
- *         description: ID do motorista
- *         example: "123e4567-e89b-12d3-a456-426614174000"
- *       - in: query
- *         name: pagina
- *         schema:
- *           type: integer
- *           minimum: 1
- *           default: 1
- *         description: Número da página
- *       - in: query
- *         name: limite
- *         schema:
- *           type: integer
- *           minimum: 1
- *           maximum: 100
- *           default: 20
- *         description: Número de itens por página
- *     responses:
- *       200:
- *         description: Corridas do motorista retornadas com sucesso
+ *                   example: "Corrida cancelada com sucesso"
+ *                 data:
+ *                   $ref: '#/components/schemas/Corrida'
+ *       400:
+ *         description: Dados inválidos
  *         content:
  *           application/json:
  *             schema:
  *               type: object
  *               properties:
- *                 dados:
- *                   type: array
- *                   items:
- *                     $ref: '#/components/schemas/Corrida'
- *                 meta:
- *                   type: object
- *                   properties:
- *                     pagina:
- *                       type: integer
- *                       example: 1
- *                     limite:
- *                       type: integer
- *                       example: 20
- *                     total:
- *                       type: integer
- *                       example: 8
- *                     totalPaginas:
- *                       type: integer
- *                       example: 1
- *                     temProxima:
- *                       type: boolean
- *                       example: false
- *                     temAnterior:
- *                       type: boolean
- *                       example: false
- *                 sucesso:
- *                   type: boolean
- *                   example: true
- *                 timestamp:
+ *                 message:
  *                   type: string
- *                   format: date-time
+ *                   example: "Por quem é obrigatório (passageiro ou motorista)"
+ *                 code:
+ *                   type: string
+ *                   example: "CAMPOS_OBRIGATORIOS"
  *       404:
- *         $ref: '#/components/responses/ErroPadrao'
- * 
- * /corridas/passageiro/{passageiroId}:
+ *         description: Corrida não encontrada
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Corrida não encontrada"
+ *                 code:
+ *                   type: string
+ *                   example: "NAO_ENCONTRADO"
+ *       409:
+ *         description: Não é possível cancelar
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Não é possível cancelar corrida já iniciada"
+ *                 code:
+ *                   type: string
+ *                   example: "NAO_PODE_CANCELAR"
+ */
+router.post('/:id/cancelar', CorridaController.cancelar);
+
+/**
+ * @swagger
+ * /api/v1/corridas/passageiro/{passageiroId}:
  *   get:
  *     summary: Buscar corridas por passageiro
- *     description: Retorna todas as corridas de um passageiro específico
  *     tags: [Corridas]
  *     parameters:
  *       - in: path
@@ -410,187 +555,87 @@ const router = express.Router();
  *           type: string
  *           format: uuid
  *         description: ID do passageiro
- *         example: "123e4567-e89b-12d3-a456-426614174000"
- *       - in: query
- *         name: pagina
- *         schema:
- *           type: integer
- *           minimum: 1
- *           default: 1
- *         description: Número da página
- *       - in: query
- *         name: limite
- *         schema:
- *           type: integer
- *           minimum: 1
- *           maximum: 100
- *           default: 20
- *         description: Número de itens por página
  *     responses:
  *       200:
- *         description: Corridas do passageiro retornadas com sucesso
+ *         description: Corridas do passageiro
  *         content:
  *           application/json:
  *             schema:
  *               type: object
  *               properties:
- *                 dados:
+ *                 message:
+ *                   type: string
+ *                   example: "Corridas do passageiro"
+ *                 data:
  *                   type: array
  *                   items:
  *                     $ref: '#/components/schemas/Corrida'
- *                 meta:
- *                   type: object
- *                   properties:
- *                     pagina:
- *                       type: integer
- *                       example: 1
- *                     limite:
- *                       type: integer
- *                       example: 20
- *                     total:
- *                       type: integer
- *                       example: 12
- *                     totalPaginas:
- *                       type: integer
- *                       example: 1
- *                     temProxima:
- *                       type: boolean
- *                       example: false
- *                     temAnterior:
- *                       type: boolean
- *                       example: false
- *                 sucesso:
- *                   type: boolean
- *                   example: true
- *                 timestamp:
- *                   type: string
- *                   format: date-time
- * 
- * /corridas/status/{status}:
+ *                 total:
+ *                   type: integer
+ *                   example: 3
+ */
+router.get('/passageiro/:passageiroId', CorridaController.buscarPorPassageiro);
+
+/**
+ * @swagger
+ * /api/v1/corridas/motorista/{motoristaId}:
  *   get:
- *     summary: Buscar corridas por status
- *     description: Retorna todas as corridas com um status específico
+ *     summary: Buscar corridas por motorista
  *     tags: [Corridas]
  *     parameters:
  *       - in: path
- *         name: status
- *         required: true
- *         schema:
- *           type: string
- *           enum: [MOTORISTA_A_CAMINHO, EM_ANDAMENTO, CONCLUIDA, CANCELADA_PELO_PASSAGEIRO, CANCELADA_PELO_MOTORISTA]
- *         description: Status das corridas
- *         example: "EM_ANDAMENTO"
- *       - in: query
- *         name: pagina
- *         schema:
- *           type: integer
- *           minimum: 1
- *           default: 1
- *         description: Número da página
- *       - in: query
- *         name: limite
- *         schema:
- *           type: integer
- *           minimum: 1
- *           maximum: 100
- *           default: 20
- *         description: Número de itens por página
- *     responses:
- *       200:
- *         description: Corridas por status retornadas com sucesso
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 dados:
- *                   type: array
- *                   items:
- *                     $ref: '#/components/schemas/Corrida'
- *                 meta:
- *                   type: object
- *                   properties:
- *                     pagina:
- *                       type: integer
- *                       example: 1
- *                     limite:
- *                       type: integer
- *                       example: 20
- *                     total:
- *                       type: integer
- *                       example: 25
- *                     totalPaginas:
- *                       type: integer
- *                       example: 2
- *                     temProxima:
- *                       type: boolean
- *                       example: true
- *                     temAnterior:
- *                       type: boolean
- *                       example: false
- *                 sucesso:
- *                   type: boolean
- *                   example: true
- *                 timestamp:
- *                   type: string
- *                   format: date-time
- *       400:
- *         $ref: '#/components/responses/ErroPadrao'
- * 
- * /corridas/pedido/{pedidoId}:
- *   get:
- *     summary: Buscar corrida por pedido
- *     description: Retorna a corrida associada a um pedido específico
- *     tags: [Corridas]
- *     parameters:
- *       - in: path
- *         name: pedidoId
+ *         name: motoristaId
  *         required: true
  *         schema:
  *           type: string
  *           format: uuid
- *         description: ID do pedido de corrida
- *         example: "123e4567-e89b-12d3-a456-426614174000"
+ *         description: ID do motorista
  *     responses:
  *       200:
- *         description: Corrida encontrada com sucesso
+ *         description: Corridas do motorista
  *         content:
  *           application/json:
  *             schema:
  *               type: object
  *               properties:
- *                 dados:
- *                   $ref: '#/components/schemas/Corrida'
- *                 sucesso:
- *                   type: boolean
- *                   example: true
- *                 timestamp:
+ *                 message:
  *                   type: string
- *                   format: date-time
- *       404:
- *         $ref: '#/components/responses/ErroPadrao'
+ *                   example: "Corridas do motorista"
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     $ref: '#/components/schemas/Corrida'
+ *                 total:
+ *                   type: integer
+ *                   example: 2
  */
+router.get('/motorista/:motoristaId', CorridaController.buscarPorMotorista);
 
-// Aplicar middleware de paginação para rotas que listam dados
-router.use(validarPaginacao);
+/**
+ * @swagger
+ * /api/v1/corridas/aguardando-motorista:
+ *   get:
+ *     summary: Listar corridas aguardando motorista
+ *     tags: [Corridas]
+ *     responses:
+ *       200:
+ *         description: Corridas aguardando motorista
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Corridas aguardando motorista"
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     $ref: '#/components/schemas/Corrida'
+ *                 total:
+ *                   type: integer
+ *                   example: 4
+ */
+router.get('/aguardando-motorista', CorridaController.buscarAguardandoMotorista);
 
-// Rotas principais
-router.get('/', CorridaController.listarTodas);
-
-// Rotas com ID
-router.get('/:id', validarUUID('id'), CorridaController.buscarPorId);
-router.delete('/:id', validarUUID('id'), CorridaController.remover);
-
-// Rotas de ação
-router.post('/:id/status', validarUUID('id'), validarStatusCorrida, CorridaController.atualizarStatus);
-router.post('/:id/cancelar', validarUUID('id'), CorridaController.cancelarPeloPassageiro);
-router.post('/:id/cancelar-motorista', validarUUID('id'), CorridaController.cancelarPeloMotorista);
-router.post('/:id/concluir', validarUUID('id'), CorridaController.concluir);
-
-// Rotas de busca
-router.get('/motorista/:motoristaId', validarUUID('motoristaId'), CorridaController.buscarPorMotorista);
-router.get('/passageiro/:passageiroId', validarUUID('passageiroId'), CorridaController.buscarPorPassageiro);
-router.get('/status/:status', CorridaController.buscarPorStatus);
-router.get('/pedido/:pedidoId', validarUUID('pedidoId'), CorridaController.buscarPorPedido);
-
-export default router; 
+export default router;

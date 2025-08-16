@@ -1,250 +1,191 @@
-/**
- * @swagger
- * components:
- *   schemas:
- *     Corrida:
- *       type: object
- *       required:
- *         - pedidoId
- *         - motoristaId
- *         - passageiroId
- *         - precoEstimado
- *       properties:
- *         id:
- *           type: string
- *           format: uuid
- *           description: ID único da corrida (UUID v4)
- *           example: "123e4567-e89b-12d3-a456-426614174000"
- *         pedidoId:
- *           type: string
- *           format: uuid
- *           description: ID do pedido de corrida associado
- *           example: "123e4567-e89b-12d3-a456-426614174000"
- *         motoristaId:
- *           type: string
- *           format: uuid
- *           description: ID do motorista responsável pela corrida
- *           example: "123e4567-e89b-12d3-a456-426614174000"
- *         passageiroId:
- *           type: string
- *           format: uuid
- *           description: ID do passageiro que solicitou a corrida
- *           example: "123e4567-e89b-12d3-a456-426614174000"
- *         status:
- *           type: string
- *           enum: [MOTORISTA_A_CAMINHO, EM_ANDAMENTO, CONCLUIDA, CANCELADA_PELO_PASSAGEIRO, CANCELADA_PELO_MOTORISTA]
- *           description: Status atual da corrida
- *           default: "MOTORISTA_A_CAMINHO"
- *           example: "MOTORISTA_A_CAMINHO"
- *         precoEstimado:
- *           type: number
- *           format: float
- *           description: Preço estimado da corrida herdado do pedido
- *           example: 15.50
- *         precoFinal:
- *           type: number
- *           format: float
- *           nullable: true
- *           description: Preço final da corrida (pode ser nulo se não finalizada)
- *           example: 15.50
- *         criadoEm:
- *           type: string
- *           format: date-time
- *           description: Data e hora de criação da corrida
- *           example: "2024-01-15T10:30:00.000Z"
- *         atualizadoEm:
- *           type: string
- *           format: date-time
- *           description: Data e hora da última atualização da corrida
- *           example: "2024-01-15T10:30:00.000Z"
- *       example:
- *         id: "123e4567-e89b-12d3-a456-426614174000"
- *         pedidoId: "123e4567-e89b-12d3-a456-426614174000"
- *         motoristaId: "123e4567-e89b-12d3-a456-426614174000"
- *         passageiroId: "123e4567-e89b-12d3-a456-426614174000"
- *         status: "MOTORISTA_A_CAMINHO"
- *         precoEstimado: 15.50
- *         precoFinal: null
- *         criadoEm: "2024-01-15T10:30:00.000Z"
- *         atualizadoEm: "2024-01-15T10:30:00.000Z"
- */
-
 import { v4 as uuidv4 } from 'uuid';
 
 export class Corrida {
-  constructor(pedidoId, motoristaId, passageiroId, precoEstimado) {
+  constructor(passageiroId, origem, destino) {
     this.id = uuidv4();
-    this.pedidoId = pedidoId;
-    this.motoristaId = motoristaId;
     this.passageiroId = passageiroId;
-    this.status = 'MOTORISTA_A_CAMINHO';
-    this.precoEstimado = precoEstimado;
+    this.origem = origem;
+    this.destino = destino;
+    this.status = 'aguardando_motorista';
+    this.motoristaId = null;
+    this.precoBase = 5.00;
+    this.precoPorKm = 2.00;
+    this.precoPorMin = 0.50;
+    this.precoEstimado = this.calcularPrecoEstimado();
     this.precoFinal = null;
+    this.inicioEm = null;
+    this.fimEm = null;
     this.criadoEm = new Date().toISOString();
     this.atualizadoEm = new Date().toISOString();
   }
 
-  static validar(pedidoId, motoristaId, passageiroId, precoEstimado) {
-    const erros = [];
-
-    // Validação dos IDs
-    if (!pedidoId || typeof pedidoId !== 'string') {
-      erros.push('ID do pedido é obrigatório e deve ser uma string');
-    }
-
-    if (!motoristaId || typeof motoristaId !== 'string') {
-      erros.push('ID do motorista é obrigatório e deve ser uma string');
-    }
-
-    if (!passageiroId || typeof passageiroId !== 'string') {
-      erros.push('ID do passageiro é obrigatório e deve ser uma string');
-    }
-
-    // Validação do preço estimado
-    if (typeof precoEstimado !== 'number' || precoEstimado <= 0) {
-      erros.push('Preço estimado deve ser um número positivo');
-    }
-
-    return erros;
+  calcularPrecoEstimado() {
+    // Cálculo simples baseado em distância estimada
+    const distanciaKm = this.calcularDistanciaEstimada();
+    const tempoEstimadoMin = distanciaKm * 2; // 2 min por km
+    
+    return this.precoBase + (distanciaKm * this.precoPorKm) + (tempoEstimadoMin * this.precoPorMin);
   }
 
-  atualizarStatus(novoStatus) {
-    const transicoesValidas = {
-      'MOTORISTA_A_CAMINHO': ['EM_ANDAMENTO'],
-      'EM_ANDAMENTO': ['CONCLUIDA'],
-      'CONCLUIDA': [], // Estado final
-      'CANCELADA_PELO_PASSAGEIRO': [], // Estado final
-      'CANCELADA_PELO_MOTORISTA': [] // Estado final
-    };
+  calcularDistanciaEstimada() {
+    // Cálculo simples baseado em coordenadas (aproximado)
+    const latDiff = Math.abs(this.origem.lat - this.destino.lat);
+    const lngDiff = Math.abs(this.origem.lng - this.destino.lng);
+    return Math.sqrt(latDiff * latDiff + lngDiff * lngDiff) * 111; // 111 km por grau
+  }
 
-    if (!transicoesValidas[this.status].includes(novoStatus)) {
-      throw new Error(`Transição de status inválida: ${this.status} → ${novoStatus}`);
+  aceitar(motoristaId) {
+    if (this.status !== 'aguardando_motorista') {
+      throw new Error('Corrida não está aguardando motorista');
     }
-
-    this.status = novoStatus;
+    
+    this.status = 'aceita';
+    this.motoristaId = motoristaId;
     this.atualizadoEm = new Date().toISOString();
-    return true;
   }
 
-  cancelarPeloPassageiro() {
-    if (this.status === 'CONCLUIDA') {
-      throw new Error('Não é possível cancelar uma corrida já concluída');
+  iniciar() {
+    if (this.status !== 'aceita') {
+      throw new Error('Corrida deve estar aceita para ser iniciada');
     }
-
-    this.status = 'CANCELADA_PELO_PASSAGEIRO';
-    this.precoFinal = 7.00; // Multa conforme RN-10
+    
+    this.status = 'iniciada';
+    this.inicioEm = new Date().toISOString();
     this.atualizadoEm = new Date().toISOString();
-    return true;
   }
 
-  cancelarPeloMotorista() {
-    if (this.status === 'CONCLUIDA') {
-      throw new Error('Não é possível cancelar uma corrida já concluída');
+  finalizar(distanciaKm, duracaoMin) {
+    if (this.status !== 'iniciada') {
+      throw new Error('Corrida deve estar iniciada para ser finalizada');
     }
-
-    this.status = 'CANCELADA_PELO_MOTORISTA';
-    this.precoFinal = 0; // Preço zero conforme RN-11
+    
+    this.status = 'finalizada';
+    this.fimEm = new Date().toISOString();
+    this.precoFinal = this.precoBase + (distanciaKm * this.precoPorKm) + (duracaoMin * this.precoPorMin);
     this.atualizadoEm = new Date().toISOString();
-    return true;
   }
 
-  concluir() {
-    if (this.status !== 'EM_ANDAMENTO') {
-      throw new Error('Só é possível concluir uma corrida em andamento');
+  cancelarPorPassageiro() {
+    if (this.status === 'iniciada' || this.status === 'finalizada') {
+      throw new Error('Não é possível cancelar corrida já iniciada');
     }
-
-    this.status = 'CONCLUIDA';
-    this.precoFinal = this.precoEstimado; // Preço padrão conforme RN-12
+    
+    this.status = 'cancelada_pelo_passageiro';
     this.atualizadoEm = new Date().toISOString();
-    return true;
   }
 
-  isCancelavel() {
-    return this.status !== 'CONCLUIDA';
+  cancelarPorMotorista() {
+    if (this.status === 'iniciada' || this.status === 'finalizada') {
+      throw new Error('Não é possível cancelar corrida já iniciada');
+    }
+    
+    this.status = 'cancelada_pelo_motorista';
+    this.atualizadoEm = new Date().toISOString();
   }
 
-  isFinalizada() {
-    return ['CONCLUIDA', 'CANCELADA_PELO_PASSAGEIRO', 'CANCELADA_PELO_MOTORISTA'].includes(this.status);
+  podeSerCancelada() {
+    return ['aguardando_motorista', 'aceita'].includes(this.status);
+  }
+
+  podeSerIniciada() {
+    return this.status === 'aceita';
+  }
+
+  podeSerFinalizada() {
+    return this.status === 'iniciada';
   }
 }
 
 // Armazenamento em memória
-export const corridas = new Map();
+const corridas = new Map();
 
-// Métodos de acesso aos dados
-export const CorridaService = {
-  criar(pedidoId, motoristaId, passageiroId, precoEstimado) {
-    const erros = Corrida.validar(pedidoId, motoristaId, passageiroId, precoEstimado);
-    if (erros.length > 0) {
-      throw new Error(`Validação falhou: ${erros.join(', ')}`);
+export class CorridaService {
+  static criar(passageiroId, origem, destino) {
+    // Verificar se passageiro tem corrida ativa
+    const corridaAtiva = this.buscarCorridaAtivaPorPassageiro(passageiroId);
+    if (corridaAtiva) {
+      throw new Error('Passageiro já possui corrida em andamento');
     }
 
-    const corrida = new Corrida(pedidoId, motoristaId, passageiroId, precoEstimado);
+    const corrida = new Corrida(passageiroId, origem, destino);
     corridas.set(corrida.id, corrida);
     return corrida;
-  },
-
-  buscarPorId(id) {
-    return corridas.get(id) || null;
-  },
-
-  buscarPorPedido(pedidoId) {
-    return Array.from(corridas.values()).find(c => c.pedidoId === pedidoId) || null;
-  },
-
-  buscarPorMotorista(motoristaId) {
-    return Array.from(corridas.values()).filter(c => c.motoristaId === motoristaId);
-  },
-
-  buscarPorPassageiro(passageiroId) {
-    return Array.from(corridas.values()).filter(c => c.passageiroId === passageiroId);
-  },
-
-  buscarPorStatus(status) {
-    return Array.from(corridas.values()).filter(c => c.status === status);
-  },
-
-  listarTodas() {
-    return Array.from(corridas.values());
-  },
-
-  atualizarStatus(id, novoStatus) {
-    const corrida = corridas.get(id);
-    if (!corrida) {
-      throw new Error('Corrida não encontrada');
-    }
-
-    return corrida.atualizarStatus(novoStatus);
-  },
-
-  cancelarPeloPassageiro(id) {
-    const corrida = corridas.get(id);
-    if (!corrida) {
-      throw new Error('Corrida não encontrada');
-    }
-
-    return corrida.cancelarPeloPassageiro();
-  },
-
-  cancelarPeloMotorista(id) {
-    const corrida = corridas.get(id);
-    if (!corrida) {
-      throw new Error('Corrida não encontrada');
-    }
-
-    return corrida.cancelarPeloMotorista();
-  },
-
-  concluir(id) {
-    const corrida = corridas.get(id);
-    if (!corrida) {
-      throw new Error('Corrida não encontrada');
-    }
-
-    return corrida.concluir();
-  },
-
-  deletar(id) {
-    return corridas.delete(id);
   }
-}; 
+
+  static buscarPorId(id) {
+    return corridas.get(id);
+  }
+
+  static buscarCorridaAtivaPorPassageiro(passageiroId) {
+    for (const corrida of corridas.values()) {
+      if (corrida.passageiroId === passageiroId && 
+          ['aguardando_motorista', 'aceita', 'iniciada'].includes(corrida.status)) {
+        return corrida;
+      }
+    }
+    return null;
+  }
+
+  static buscarPorMotorista(motoristaId) {
+    return Array.from(corridas.values()).filter(c => c.motoristaId === motoristaId);
+  }
+
+  static buscarPorPassageiro(passageiroId) {
+    return Array.from(corridas.values()).filter(c => c.passageiroId === passageiroId);
+  }
+
+  static buscarAguardandoMotorista() {
+    return Array.from(corridas.values()).filter(c => c.status === 'aguardando_motorista');
+  }
+
+  static listarTodas() {
+    return Array.from(corridas.values());
+  }
+
+  static aceitarCorrida(corridaId, motoristaId) {
+    const corrida = corridas.get(corridaId);
+    if (!corrida) {
+      throw new Error('Corrida não encontrada');
+    }
+
+    corrida.aceitar(motoristaId);
+    return corrida;
+  }
+
+  static iniciarCorrida(corridaId) {
+    const corrida = corridas.get(corridaId);
+    if (!corrida) {
+      throw new Error('Corrida não encontrada');
+    }
+
+    corrida.iniciar();
+    return corrida;
+  }
+
+  static finalizarCorrida(corridaId, distanciaKm, duracaoMin) {
+    const corrida = corridas.get(corridaId);
+    if (!corrida) {
+      throw new Error('Corrida não encontrada');
+    }
+
+    corrida.finalizar(distanciaKm, duracaoMin);
+    return corrida;
+  }
+
+  static cancelarCorrida(corridaId, porQuem) {
+    const corrida = corridas.get(corridaId);
+    if (!corrida) {
+      throw new Error('Corrida não encontrada');
+    }
+
+    if (porQuem === 'passageiro') {
+      corrida.cancelarPorPassageiro();
+    } else if (porQuem === 'motorista') {
+      corrida.cancelarPorMotorista();
+    } else {
+      throw new Error('Tipo de cancelamento inválido');
+    }
+
+    return corrida;
+  }
+}
