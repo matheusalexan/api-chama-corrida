@@ -20,8 +20,5 @@ describe('Testes de Performance da API', () => {
       .send(passageiro);
     
     expect(passageiroResponse.status).to.equal(201);
-    
-    // Este teste valida que cada execução é independente
-    // e não há conflitos de dados entre execuções
   });
 });
