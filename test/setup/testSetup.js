@@ -10,6 +10,22 @@ export const testConfig = {
   apiVersion: process.env.API_VERSION || 'v1'
 };
 
+// Limpeza global de dados entre suites de teste
+let globalTestData = {
+  passageiros: [],
+  motoristas: [],
+  corridas: []
+};
+
+// Função para limpar completamente o estado da aplicação
+export async function limparEstadoCompleto() {
+  // Resetar dados globais
+  globalTestData = { passageiros: [], motoristas: [], corridas: [] };
+  
+  // Aguardar um pouco para garantir que não há operações pendentes
+  await new Promise(resolve => setTimeout(resolve, 100));
+}
+
 export function setupTestHooks() {
   beforeEach(function() {
     this.timeout(testConfig.timeout);
@@ -29,10 +45,14 @@ export function setupTestHooks() {
   before(function() {
     console.log('Starting test suite...');
     console.log(`Config: ${JSON.stringify(testConfig, null, 2)}`);
+    // Limpar dados globais no início de cada suite
+    globalTestData = { passageiros: [], motoristas: [], corridas: [] };
   });
 
   after(function() {
     console.log('Test suite completed');
+    // Limpar dados globais no final de cada suite
+    globalTestData = { passageiros: [], motoristas: [], corridas: [] };
   });
 }
 
@@ -42,6 +62,7 @@ export function setupCorridaTestHooks() {
   let corridaId;
 
   beforeEach(async function() {
+    // Limpar IDs anteriores
     passageiroId = null;
     motoristaId = null;
     corridaId = null;
@@ -49,6 +70,7 @@ export function setupCorridaTestHooks() {
   });
 
   afterEach(function() {
+    // Limpar IDs após cada teste
     passageiroId = null;
     motoristaId = null;
     corridaId = null;
@@ -56,28 +78,50 @@ export function setupCorridaTestHooks() {
 
   return {
     getPassageiroId: () => passageiroId,
-    setPassageiroId: (id) => { passageiroId = id; },
+    setPassageiroId: (id) => { 
+      passageiroId = id; 
+      if (id) globalTestData.passageiros.push(id);
+    },
     getMotoristaId: () => motoristaId,
-    setMotoristaId: (id) => { motoristaId = id; },
+    setMotoristaId: (id) => { 
+      motoristaId = id; 
+      if (id) globalTestData.motoristas.push(id);
+    },
     getCorridaId: () => corridaId,
-    setCorridaId: (id) => { corridaId = id; }
+    setCorridaId: (id) => { 
+      corridaId = id; 
+      if (id) globalTestData.corridas.push(id);
+    }
   };
 }
 
 export function setupUsuarioTestHooks() {
   let usuariosCriados = [];
 
-  beforeEach(function() {
+  beforeEach(async function() {
+    // Limpar lista de usuários criados
     usuariosCriados = [];
     this.timeout(8000);
+    // Limpar estado completo antes de cada teste
+    await limparEstadoCompleto();
   });
 
   afterEach(function() {
+    // Limpar lista após cada teste
     usuariosCriados = [];
   });
 
   return {
-    adicionarUsuario: (usuario) => usuariosCriados.push(usuario),
+    adicionarUsuario: (usuario) => {
+      usuariosCriados.push(usuario);
+      if (usuario.id) {
+        if (usuario.placa) {
+          globalTestData.motoristas.push(usuario.id);
+        } else {
+          globalTestData.passageiros.push(usuario.id);
+        }
+      }
+    },
     getUsuariosCriados: () => usuariosCriados,
     limparUsuarios: () => { usuariosCriados = []; }
   };
@@ -86,9 +130,11 @@ export function setupUsuarioTestHooks() {
 export function setupPerformanceTestHooks() {
   let metricas = [];
 
-  beforeEach(function() {
+  beforeEach(async function() {
     metricas = [];
     this.timeout(15000);
+    // Limpar dados globais para testes de performance
+    await limparEstadoCompleto();
   });
 
   afterEach(function() {
@@ -100,14 +146,33 @@ export function setupPerformanceTestHooks() {
       console.log(`Performance Metrics:`);
       console.log(`  Average: ${tempoMedio.toFixed(2)}ms`);
       console.log(`  Max: ${tempoMax}ms`);
-      console.log(`  Min: ${tempoMin}ms`);
+      console.log(`  Min: ${tempoMax}ms`);
     }
+    // Limpar dados após teste de performance
+    globalTestData = { passageiros: [], motoristas: [], corridas: [] };
   });
 
   return {
     adicionarMetrica: (tempo) => metricas.push(tempo),
     getMetricas: () => metricas,
     calcularMedia: () => metricas.reduce((acc, val) => acc + val, 0) / metricas.length
+  };
+}
+
+// Função para limpar dados entre testes
+export function limparDadosTeste() {
+  globalTestData = { passageiros: [], motoristas: [], corridas: [] };
+}
+
+// Função para gerar dados únicos para testes
+export function gerarDadosUnicos() {
+  const timestamp = Date.now();
+  const random = Math.random().toString(36).substr(2, 5);
+  
+  return {
+    nome: `Teste ${timestamp}`,
+    telefone: `+5511${timestamp.toString().slice(-8)}`,
+    placa: `ABC${timestamp.toString().slice(-3)}`
   };
 }
 
