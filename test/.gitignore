@@ -1,0 +1,23 @@
+# Logs
+*.log
+npm-debug.log*
+
+# Arquivos temporários
+*.tmp
+*.temp
+
+# Coverage reports
+coverage/
+.nyc_output/
+
+# Relatórios Mochawesome
+reports/
+mochawesome-report/
+
+# Node modules (se houver)
+node_modules/
+
+# Arquivos de ambiente
+.env
+.env.local
+.env.test
