@@ -105,10 +105,10 @@ const swaggerOptions = {
 
 const specs = swaggerJsdoc(swaggerOptions);
 
-// Rotas - usando os endpoints corretos conforme solicitado
-app.use('/usuarios/passageiros', passageirosRoutes);
-app.use('/usuarios/motoristas', motoristasRoutes);
-app.use('/corridas', corridasRoutes);
+// Rotas - usando os endpoints /api/v1/ conforme os testes esperam
+app.use('/api/v1/passageiros', passageirosRoutes);
+app.use('/api/v1/motoristas', motoristasRoutes);
+app.use('/api/v1/corridas', corridasRoutes);
 
 // Swagger UI
 app.use('/docs', swaggerUi.serve, swaggerUi.setup(specs));
@@ -134,9 +134,9 @@ app.get('/', (req, res) => {
     endpoints: {
       docs: '/docs',
       health: '/health',
-      passageiros: '/usuarios/passageiros',
-      motoristas: '/usuarios/motoristas',
-      corridas: '/corridas',
+      passageiros: '/api/v1/passageiros',
+      motoristas: '/api/v1/motoristas',
+      corridas: '/api/v1/corridas',
     },
   });
 });
