@@ -1,0 +1,22 @@
+{
+  "reporterEnabled": "mochawesome",
+  "mochawesomeReporterOptions": {
+    "reportDir": "test/reports",
+    "quiet": false,
+    "overwrite": true,
+    "html": true,
+    "json": true,
+    "timestamp": true,
+    "reportTitle": "Relatório de Testes - API de Transporte",
+    "reportPageTitle": "Testes da API de Transporte",
+    "embeddedScreenshots": true,
+    "inlineAssets": true,
+    "saveAllAttempts": false,
+    "code": true,
+    "showPassed": true,
+    "showFailed": true,
+    "showPending": true,
+    "showSkipped": true,
+    "showHooks": true
+  }
+}
