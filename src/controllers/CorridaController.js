@@ -103,6 +103,13 @@ export class CorridaController {
         data: corrida
       });
     } catch (error) {
+      if (error.message.includes('já foi aceita por outro motorista')) {
+        return res.status(409).json({
+          message: error.message,
+          code: 'CORRIDA_JA_ACEITA'
+        });
+      }
+      
       if (error.message.includes('não está aguardando motorista')) {
         return res.status(422).json({
           message: error.message,
@@ -158,16 +165,24 @@ export class CorridaController {
   static async finalizar(req, res) {
     try {
       const { id } = req.params;
-      const { distanciaKm, duracaoMin } = req.body;
+      const { km, min } = req.body;
       
-      if (!distanciaKm || !duracaoMin) {
+      if (!km || !min) {
         return res.status(400).json({
-          message: 'Distância e duração são obrigatórias',
+          message: 'Distância (km) e duração (min) são obrigatórias',
           code: 'CAMPOS_OBRIGATORIOS'
         });
       }
 
-      const corrida = CorridaService.finalizarCorrida(id, distanciaKm, duracaoMin);
+      // Validar valores negativos
+      if (km < 0 || min < 0) {
+        return res.status(400).json({
+          message: 'Distância e duração não podem ser negativas',
+          code: 'VALORES_INVALIDOS'
+        });
+      }
+
+      const corrida = CorridaService.finalizarCorrida(id, km, min);
       
       // Liberar motorista
       if (corrida.motoristaId) {
@@ -203,19 +218,11 @@ export class CorridaController {
   static async cancelar(req, res) {
     try {
       const { id } = req.params;
-      const { porQuem } = req.body;
       
-      if (!porQuem || !['passageiro', 'motorista'].includes(porQuem)) {
-        return res.status(400).json({
-          message: 'Por quem é obrigatório (passageiro ou motorista)',
-          code: 'CAMPOS_OBRIGATORIOS'
-        });
-      }
-
-      const corrida = CorridaService.cancelarCorrida(id, porQuem);
+      const corrida = CorridaService.cancelarCorrida(id);
       
-      // Liberar motorista se for cancelamento
-      if (corrida.motoristaId && porQuem === 'motorista') {
+      // Liberar motorista se for cancelamento de corrida aceita
+      if (corrida.motoristaId && corrida.status === 'cancelada') {
         MotoristaService.alterarStatus(corrida.motoristaId, 'disponível');
       }
       
