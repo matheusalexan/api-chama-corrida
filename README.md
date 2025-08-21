@@ -32,13 +32,104 @@ src/
 └── server.js      # Configuração principal do servidor
 ```
 
-### Padrões Adotados
 
-- **MVC**: Separação entre modelos, controladores e rotas
-- **Service Layer**: Regras de negócio centralizadas
-- **Middleware**: Tratamento de erros e validações
-- **Repository Pattern** (simulado): abstração de acesso a dados em memória
+**Padrões adotados:**
+- MVC (Models, Controllers, Routes)  
+- Service Layer (lógica de negócio encapsulada)  
+- Middleware centralizado para validação/erros  
+- Repository Pattern (simulado, em memória)
 
+---
+
+## Funcionalidades Principais
+
+### Gestão de Usuários
+- Cadastro de passageiros (nome + telefone único).  
+- Cadastro de motoristas (nome + telefone único + placa).  
+- Controle de status de motorista (disponível/ocupado).  
+- Listagem e busca por ID ou telefone.  
+
+### Sistema de Corridas
+- Solicitação de corrida com origem e destino.  
+- Aceitação por motoristas disponíveis.  
+- Início e finalização com cálculo de valor.  
+- Cancelamento (restrito a estados iniciais).  
+- Consultas por ID, histórico do passageiro e histórico do motorista.  
+
+### Fluxo da Corrida
+- `aguardando_motorista` → `aceita` → `iniciada` → `finalizada`  
+- Cancelamento permitido apenas em `aguardando_motorista` ou `aceita`.
+
+---
+
+## Cálculo de Preços
+
+- **Taxa base:** R$ 5,00  
+- **Por km:** R$ 2,00  
+- **Por minuto:** R$ 0,50  
+- **Fórmula:** `5 + (km × 2) + (min × 0,5)`  
+
+---
+
+## Regras de Negócio Implementadas
+
+### RN-01: Unicidade de Telefone (Passageiro)
+Telefone obrigatório em formato E.164. Não pode haver duplicidade.  
+
+### RN-02: Unicidade de Telefone (Motorista)
+Mesma regra do passageiro. Telefone único obrigatório.  
+
+### RN-03: Validação de Coordenadas
+Lat ∈ [-90,90], Lng ∈ [-180,180]. Origem ≠ destino.  
+
+### RN-04: Categorias de Veículo
+Apenas `ECONOMY` ou `COMFORT`. Inválidas → 400.  
+
+### RN-05: Criação de Pedido de Corrida
+- Status inicial: `PROCURANDO`  
+- Passageiro não pode ter corrida ativa  
+- Resposta: 201 com ID, status, preço estimado, expiração  
+
+### RN-06: Cálculo de Preço Estimado (detalhado)
+- Distância: fórmula de Haversine  
+- Tempo: média 25 km/h  
+- Tarifas: Base R$ 3 + R$ 1,80/km + R$ 0,50/min  
+- Multiplicadores: COMFORT × 1.3, ECONOMY × 1.0  
+
+### RN-07: Expiração Automática
+Pedido expira em 90s se não aceito. Status = `EXPIRADO`.  
+
+### RN-08: Aceitação de Pedido
+Apenas motoristas disponíveis. O primeiro aceite é válido.  
+Transição: `PEDIDO` → `MOTORISTA_ATRIBUIDO` → `MOTORISTA_A_CAMINHO`.  
+
+### RN-09: Fluxo de Estados
+- `MOTORISTA_A_CAMINHO` → `EM_ANDAMENTO` → `CONCLUIDA`  
+- Qualquer transição inválida → 422.  
+
+### RN-10: Cancelamento pelo Passageiro
+Permitido antes de `CONCLUIDA`. Multa R$ 7,00 se após `MOTORISTA_A_CAMINHO`.  
+
+### RN-11: Cancelamento pelo Motorista
+Permitido antes de `CONCLUIDA`. Sem multa.  
+
+### RN-12: Preço Final
+Em regra = preço estimado. Exceto cancelamentos (RN-10, RN-11).  
+
+### RN-13: Paginação nas Listagens
+Parâmetros: `?pagina=1&limite=20`. Máx. limite = 100.  
+
+### RN-14: Rate Limiting
+100 requisições/minuto por IP. Excedido → 429.  
+
+### RN-15: IDs e Datas
+- IDs: UUID v4  
+- Datas: ISO 8601 (UTC)  
+
+### RN-16: Health Check
+`GET /health` → 200 com `{status:"ok", uptime}`  
+
+---
 ---
 
 ## Funcionalidades
